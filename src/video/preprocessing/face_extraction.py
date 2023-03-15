@@ -46,7 +46,7 @@ def extract_face_one_video(path_to_video:str, detector:object, output_path:str, 
     while video.isOpened():
         ret, frame = video.read()
         if ret:
-            if counter-1 % every_n_frame == 0:
+            if (counter-1) % every_n_frame == 0:
                 # convert BGR to RGB
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 # calculate timestamp
@@ -86,11 +86,11 @@ def extract_face_one_video(path_to_video:str, detector:object, output_path:str, 
                                           "timestamp": timestamp}
                                       ])
                                       ], ignore_index=True)
+                # save previous face and bbox
+                previous_face = face
+                last_bbox = bbox
             # increment counter
             counter += 1
-            # save previous face and bbox
-            previous_face = face
-            last_bbox = bbox
         else:
             break
     return metadata
