@@ -32,6 +32,10 @@ def extract_face_one_video(path_to_video:str, detector:object, output_path:str, 
     :return: pd.DataFrame
             dataframe with information about the extracted faces
     """
+    video_filename = os.path.basename(path_to_video).split(".")[0]
+    # create output directory if needed
+    if not os.path.exists(os.path.join(output_path, video_filename)):
+        os.makedirs(os.path.join(output_path, video_filename), exist_ok=True)
     # metadata
     metadata = pd.DataFrame(columns=["filename", "frame_num", "timestamp"])
     # load video file
@@ -56,7 +60,7 @@ def extract_face_one_video(path_to_video:str, detector:object, output_path:str, 
                 # recognize the face
                 bboxes = recognize_faces_bboxes(frame, detector, conf_threshold=0.8)
                 # create new filename for saving the face
-                new_filename = os.path.basename(path_to_video).split(".")[0]
+                new_filename = video_filename
                 new_filename = os.path.join(new_filename,
                                             f"{counter:05}.jpg")
                 # if not recognized, note it as NaN
@@ -98,7 +102,7 @@ def extract_face_one_video(path_to_video:str, detector:object, output_path:str, 
 
 
 if __name__=="__main__":
-    path_to_video = r"F:\Datasets\AffWild2\videos\2-30-640x360.mp4"
+    path_to_video = r"F:\Datasets\AffWild2\videos\video74.mp4"
     path_to_output = r"F:\Datasets\AffWild2\preprocessed"
     if not os.path.exists(path_to_output):
         os.makedirs(path_to_output, exist_ok=True)
