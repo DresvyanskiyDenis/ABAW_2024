@@ -1,5 +1,6 @@
+import glob
 import os
-from typing import Optional
+from typing import Optional, List
 
 import pandas as pd
 import torch
@@ -9,7 +10,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from src.video.preprocessing.utils import extract_face_according_bbox, recognize_faces_bboxes, \
+from src.video.preprocessing.face_extraction_utils import extract_face_according_bbox, recognize_faces_bboxes, \
     get_bbox_closest_to_previous_bbox, get_most_confident_person, load_and_prepare_detector_retinaFace_mobileNet
 
 
@@ -100,11 +101,48 @@ def extract_face_one_video(path_to_video:str, detector:object, output_path:str, 
     return metadata
 
 
+def extract_faces_from_all_videos(paths_to_videos:List[str], detector:object, output_path:str, keep_the_same_person:Optional[bool]=False,
+                                  every_n_frame:Optional[int]=1)->pd.DataFrame:
+    """ Extracts faces from all videos and saves them to the output path. Also, generates dataframe with information about every video.
+
+    :param paths_to_videos: List[str]
+            list of paths to the video files
+    :param detector: object
+            the model that generates bboxes from facial images. It should return bounding boxes and confidence score for every person.
+    :param output_path: str
+            path to the output directory
+    :param keep_the_same_person: Optional[bool]
+            if True, then the function will try to keep the same person along the frames by comparing the position of the
+            bounding boxes.
+    :param every_n_frame: int
+            extract faces from every n-th frame
+    :return: pd.DataFrame
+            dataframe with information about the extracted faces (all videos are included)
+    """
+    # create output directory if needed
+    if not os.path.exists(output_path):
+        os.makedirs(output_path, exist_ok=True)
+    # create metadata file
+    metadata = pd.DataFrame(columns=["filename", "frame_num", "timestamp"])
+    # go through all videos
+    for path_to_video in paths_to_videos:
+        # extract faces from one video
+        metadata_one_video = extract_face_one_video(path_to_video, detector, output_path, keep_the_same_person, every_n_frame)
+        # add metadata from one video to the main metadata
+        metadata = pd.concat([metadata, metadata_one_video], ignore_index=True, axis=0)
+    return metadata
+
+
+
+
+
+
 
 if __name__=="__main__":
-    path_to_video = r"F:\Datasets\AffWild2\videos\video74.mp4"
-    path_to_output = r"F:\Datasets\AffWild2\preprocessed"
-    if not os.path.exists(path_to_output):
-        os.makedirs(path_to_output, exist_ok=True)
+    path_to_data = r"F:\Datasets\AffWild2\videos"
+    output_path = r"F:\Datasets\AffWild2\preprocessed\faces"
+    # load detector
     detector = load_and_prepare_detector_retinaFace_mobileNet()
-    metadata = extract_face_one_video(path_to_video, detector, path_to_output, keep_the_same_person=True, every_n_frame=1)
+    paths_to_videos = glob.glob(os.path.join(path_to_data, "*"))
+    extract_faces_from_all_videos(paths_to_videos=paths_to_videos, detector = detector, output_path=output_path,
+                                  keep_the_same_person= True, every_n_frame= 1)
