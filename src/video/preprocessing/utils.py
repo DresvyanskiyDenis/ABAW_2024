@@ -101,12 +101,15 @@ def get_bbox_closest_to_previous_bbox(faces_bboxes:Tuple[List[float],...], previ
     # find the center of the previous bbox. The order of the coordinates is (x1, y1, x2, y2) = bbox[:4]
     previous_bbox_center = ((previous_bbox[0]+previous_bbox[2])/2, (previous_bbox[1]+previous_bbox[3])/2)
     # find the centers of all bboxes. The order of the coordinates is (x1, y1, x2, y2) = bbox[:4]
-    faces_bboxes_centers = ()
+    faces_bboxes_centers = []
     for bbox in faces_bboxes:
         faces_bboxes_centers += ((bbox[0]+bbox[2])/2, (bbox[1]+bbox[3])/2)
     # find the bbox, which is closest to the previous bbox based on the euclidean distance
-    distances = [np.linalg.norm(np.array(previous_bbox_center)-np.array(bbox_center)) for bbox_center in faces_bboxes_centers]
+    distances = [np.linalg.norm(np.array(previous_bbox_center)-np.array((bbox_center_x, bbox_center_y))) for bbox_center_x, bbox_center_y in faces_bboxes_centers]
     idx_closest_bbox = np.argmin(distances)
-    closest_bbox = faces_bboxes[idx_closest_bbox]
+    try:
+        closest_bbox = faces_bboxes[idx_closest_bbox]
+    except Exception:
+        a=1+2.
 
     return closest_bbox

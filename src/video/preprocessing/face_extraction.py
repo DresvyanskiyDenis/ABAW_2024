@@ -63,9 +63,10 @@ def extract_face_one_video(path_to_video:str, detector:object, output_path:str, 
                 if bboxes is None:
                     # save previous face
                     face = previous_face
+                    bbox = last_bbox
                 else:
                     # otherwise, extract the face and save it
-                    if keep_the_same_person:
+                    if keep_the_same_person and counter>1:
                         # if we want to keep the same person, then we need to calculate the distances between the
                         # center of the previous bbox and the current ones. Then, choose the closest one.
                         bbox = get_bbox_closest_to_previous_bbox(bboxes, last_bbox)
@@ -96,7 +97,9 @@ def extract_face_one_video(path_to_video:str, detector:object, output_path:str, 
 
 
 if __name__=="__main__":
-    path_to_video = ""
-    path_to_output = ""
+    path_to_video = r"F:\Datasets\AffWild2\videos\2-30-640x360.mp4"
+    path_to_output = r"F:\Datasets\AffWild2\preprocessed"
+    if not os.path.exists(path_to_output):
+        os.makedirs(path_to_output, exist_ok=True)
     detector = load_and_prepare_detector_retinaFace_mobileNet()
     metadata = extract_face_one_video(path_to_video, detector, path_to_output, keep_the_same_person=True, every_n_frame=1)
