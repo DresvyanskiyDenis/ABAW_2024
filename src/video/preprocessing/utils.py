@@ -84,7 +84,7 @@ def recognize_faces_bboxes(img:Union[np.ndarray, str], detector:RetinafaceDetect
     recognized_faces = [face for face in recognized_faces if face[4] > conf_threshold]
     recognized_faces = tuple(recognized_faces)
     if recognized_faces is None or len(recognized_faces) == 0:
-        return None # no fases recognized
+        return None # no faces recognized
     return recognized_faces
 
 
@@ -103,13 +103,13 @@ def get_bbox_closest_to_previous_bbox(faces_bboxes:Tuple[List[float],...], previ
     # find the centers of all bboxes. The order of the coordinates is (x1, y1, x2, y2) = bbox[:4]
     faces_bboxes_centers = []
     for bbox in faces_bboxes:
-        faces_bboxes_centers += ((bbox[0]+bbox[2])/2, (bbox[1]+bbox[3])/2)
+        faces_bboxes_centers.append(((bbox[0]+bbox[2])/2, (bbox[1]+bbox[3])/2))
     # find the bbox, which is closest to the previous bbox based on the euclidean distance
-    distances = [np.linalg.norm(np.array(previous_bbox_center)-np.array((bbox_center_x, bbox_center_y))) for bbox_center_x, bbox_center_y in faces_bboxes_centers]
+    distances = [np.linalg.norm(
+                np.array(previous_bbox_center)-np.array((bbox_center_x, bbox_center_y))
+                )
+                for bbox_center_x, bbox_center_y in faces_bboxes_centers]
     idx_closest_bbox = np.argmin(distances)
-    try:
-        closest_bbox = faces_bboxes[idx_closest_bbox]
-    except Exception:
-        a=1+2.
+    closest_bbox = faces_bboxes[idx_closest_bbox]
 
     return closest_bbox
