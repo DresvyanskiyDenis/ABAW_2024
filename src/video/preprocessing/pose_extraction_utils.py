@@ -8,7 +8,7 @@ def apply_bbox_to_frame(frame, bbox)->np.ndarray:
     # define adding factor and width and height
     adding_factor = 15
     height, width, _ = frame.shape
-    tmp_bbox = bbox.copy(deep=True)
+    tmp_bbox = bbox.copy()
     # expand bbox so that it will cover all human with some space
     # height
     tmp_bbox[1] -= adding_factor
@@ -36,7 +36,7 @@ def get_bboxes_for_frame(extractor:object, frame: np.ndarray) -> Union[List[List
     prediction = extractor.predict(frame)
     if prediction is None or len(prediction[0]) == 0:
         return None
-    bboxes = [item[0] for item in prediction] # TODO: check it
+    bboxes = [item.squeeze() for item in prediction[0]] # we use mode with single person, therefore there is no need to take bboxes from different persons
     return bboxes
 
 

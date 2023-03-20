@@ -1,3 +1,6 @@
+import sys
+
+
 import glob
 import os
 from typing import Optional, List
@@ -10,7 +13,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from SimpleHigherHRNet import SimpleHigherHRNet
+from SimpleHRNet import SimpleHRNet
 from src.video.preprocessing.pose_extraction_utils import get_bboxes_for_frame, get_bbox_closest_to_previous_bbox, \
     apply_bbox_to_frame
 
@@ -38,7 +41,7 @@ def extract_pose_one_video(path_to_video: str, detector: object, output_path: st
         if ret:
             if (counter - 1) % every_n_frame == 0:
                 # convert BGR to RGB
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) # HRNet does it in prediction function
                 # calculate timestamp
                 timestamp = counter * FPS_in_seconds
                 # round it to 2 digits to make it readable
@@ -51,7 +54,7 @@ def extract_pose_one_video(path_to_video: str, detector: object, output_path: st
                                             f"{counter:05}.jpg")
                 # if not recognized, note it as NaN
                 if bboxes is None:
-                    # if there were no face vefore
+                    # if there were no face before
                     if previous_pose is None:
                         pose = np.zeros((224, 224, 3), dtype=np.uint8)
                         bbox = None
@@ -72,6 +75,8 @@ def extract_pose_one_video(path_to_video: str, detector: object, output_path: st
                     pose =  apply_bbox_to_frame(frame, bbox)
                 # create full path to the output file
                 output_filename = os.path.join(output_path, new_filename)
+                # transform image to RGB
+                pose = cv2.cvtColor(pose, cv2.COLOR_BGR2RGB)
                 # save extracted face
                 Image.fromarray(pose).save(output_filename)
                 metadata = pd.concat([metadata,
@@ -119,9 +124,13 @@ if __name__ == "__main__":
     path_to_data = r"F:\Datasets\AffWild2\videos"
     output_path = r"F:\Datasets\AffWild2\preprocessed\poses"
     # load detector
-    detector = SimpleHigherHRNet(c=32, nof_joints=17,
-                                 checkpoint_path="FILL_IN",
-                                 return_heatmaps=False, return_bounding_boxes=True, max_batch_size=1, device="cuda")
+    detector = SimpleHRNet(c=48, nof_joints=17, multiperson=True,
+                           yolo_version = 'v3',
+                           yolo_model_def=os.path.join(r"C:\Users\flamingo\Desktop\Denis_projects\simple-HRNet-master","models_/detectors/yolo/config/yolov3.cfg"),
+                           yolo_class_path=os.path.join(r"C:\Users\flamingo\Desktop\Denis_projects\simple-HRNet-master","models_/detectors/yolo/data/coco.names"),
+                           yolo_weights_path=os.path.join(r"C:\Users\flamingo\Desktop\Denis_projects\simple-HRNet-master","models_/detectors/yolo/weights/yolov3.weights"),
+                                 checkpoint_path=r"C:\Users\flamingo\Desktop\Denis_projects\simple-HRNet-master\pose_hrnet_w48_384x288.pth",
+                                 return_heatmaps=False, return_bounding_boxes=True, max_batch_size=1, device=torch.device("cuda"))
     paths_to_videos = glob.glob(os.path.join(path_to_data, "*"))
     metadata = extract_poses_from_all_videos(paths_to_videos=paths_to_videos, detector=detector,
                                                 output_path=output_path,
