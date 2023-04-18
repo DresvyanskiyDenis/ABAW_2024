@@ -14,9 +14,10 @@ from pytorch_utils.data_loaders.pytorch_augmentations import pad_image_random_fa
 from pytorch_utils.models.input_preprocessing import resize_image_saving_aspect_ratio, EfficientNet_image_preprocessor
 
 import training_config
+from src.video.preprocessing.labels_preprocessing import load_train_dev_AffWild2_labels_with_frame_paths
 
 
-def load_labels_with_frame_paths(challenge:str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def load_labels_with_frame_paths(challenge: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """ Loads the labels with the paths to the frames.
 
     :param challenge: str
@@ -26,11 +27,15 @@ def load_labels_with_frame_paths(challenge:str) -> Tuple[pd.DataFrame, pd.DataFr
         The train and val sets.
     """
     if challenge == "VA":
-        train_labels = pd.read_csv(training_config.VA_TRAIN_LABELS_PATH)
-        dev_labels = pd.read_csv(training_config.VA_DEV_LABELS_PATH)
+        train_labels, dev_labels = load_train_dev_AffWild2_labels_with_frame_paths(
+            paths_to_labels=(training_config.VA_TRAIN_LABELS_PATH, training_config.VA_DEV_LABELS_PATH),
+            path_to_metadata=training_config.METAFILE_PATH,
+            challenge=challenge)
     elif challenge == "Exp":
-        train_labels = pd.read_csv(training_config.Exp_TRAIN_LABELS_PATH)
-        dev_labels = pd.read_csv(training_config.Exp_DEV_LABELS_PATH)
+        train_labels, dev_labels = load_train_dev_AffWild2_labels_with_frame_paths(
+            paths_to_labels=(training_config.Exp_TRAIN_LABELS_PATH, training_config.Exp_DEV_LABELS_PATH),
+            path_to_metadata=training_config.METAFILE_PATH,
+            challenge=challenge)
     else:
         raise ValueError("The challenge name should be either 'VA' or 'Exp'.")
 
@@ -40,7 +45,7 @@ def load_labels_with_frame_paths(challenge:str) -> Tuple[pd.DataFrame, pd.DataFr
 
     # take every 5th frame
     train_labels = train_labels.iloc[::5, :]
-    dev_labels = dev_labels.iloc[::5, :]
+    # dev_labels = dev_labels.iloc[::5, :]
 
     # delete -1 categories
     if challenge == "Exp":
@@ -48,8 +53,12 @@ def load_labels_with_frame_paths(challenge:str) -> Tuple[pd.DataFrame, pd.DataFr
         dev_labels = dev_labels[dev_labels["category"] != -1]
 
     # change columns names for further work
-    train_labels.rename(columns={"path_to_frame":"path"}, inplace=True)
-    dev_labels.rename(columns={"path_to_frame":"path"}, inplace=True)
+    train_labels.rename(columns={"path_to_frame": "path"}, inplace=True)
+    dev_labels.rename(columns={"path_to_frame": "path"}, inplace=True)
+
+    # drop columns frame_num, timestamp, video_name as we do not need them in static model
+    train_labels.drop(columns=["frame_num", "timestamp", "video_name"], inplace=True)
+    dev_labels.drop(columns=["frame_num", "timestamp", "video_name"], inplace=True)
 
     # convert categories to one-hot vectors if it is Exp challenge
     if challenge == "Exp":
@@ -63,10 +72,21 @@ def load_labels_with_frame_paths(challenge:str) -> Tuple[pd.DataFrame, pd.DataFr
         train_labels.drop(columns=["category"], inplace=True)
         dev_labels.drop(columns=["category"], inplace=True)
 
+    # change the paths to the new onew because we run the script on another server
+    train_labels["path"] = train_labels["path"].apply(lambda x: x.replace("F:\\Datasets\\AffWild2\\preprocessed\\",
+                                                                          "/media/legalalien/Data/ABAW/preprocessed/preprocessed/"))
+
+    dev_labels["path"] = dev_labels["path"].apply(lambda x: x.replace("F:\\Datasets\\AffWild2\\preprocessed\\",
+                                                                      "/media/legalalien/Data/ABAW/preprocessed/preprocessed/"))
+
+    # change back slashes to normal ones
+    train_labels["path"] = train_labels["path"].apply(lambda x: x.replace("\\", "/"))
+    dev_labels["path"] = dev_labels["path"].apply(lambda x: x.replace("\\", "/"))
+
     return train_labels, dev_labels
 
 
-def get_augmentation_function(probability:float)->Dict[Callable, float]:
+def get_augmentation_function(probability: float) -> Dict[Callable, float]:
     """
     Returns a dictionary of augmentation functions and the probabilities of their application.
     Args:
@@ -95,12 +115,12 @@ def get_augmentation_function(probability:float)->Dict[Callable, float]:
     return augmentation_functions
 
 
-def construct_data_loaders(train:pd.DataFrame, dev:pd.DataFrame,
-                           preprocessing_functions:List[Callable],
-                           batch_size:int,
-                           augmentation_functions:Optional[Dict[Callable, float]]=None,
-                           num_workers:int=8)\
-        ->Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
+def construct_data_loaders(train: pd.DataFrame, dev: pd.DataFrame,
+                           preprocessing_functions: List[Callable],
+                           batch_size: int,
+                           augmentation_functions: Optional[Dict[Callable, float]] = None,
+                           num_workers: int = 8) \
+        -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """ Constructs the data loaders for the train, dev sets.
 
     Args:
@@ -123,20 +143,20 @@ def construct_data_loaders(train:pd.DataFrame, dev:pd.DataFrame,
     """
 
     train_data_loader = ImageDataLoader(paths_with_labels=train, preprocessing_functions=preprocessing_functions,
-                 augmentation_functions=augmentation_functions, shuffle=True)
+                                        augmentation_functions=augmentation_functions, shuffle=True)
 
     dev_data_loader = ImageDataLoader(paths_with_labels=dev, preprocessing_functions=preprocessing_functions,
-                    augmentation_functions=None, shuffle=False)
+                                      augmentation_functions=None, shuffle=False)
 
-
-    train_dataloader = DataLoader(train_data_loader, batch_size=batch_size, num_workers=num_workers, drop_last = True, shuffle=True)
-    dev_dataloader = DataLoader(dev_data_loader, batch_size=batch_size, num_workers=num_workers//2, shuffle=False)
+    train_dataloader = DataLoader(train_data_loader, batch_size=batch_size, num_workers=num_workers, drop_last=True,
+                                  shuffle=True)
+    dev_dataloader = DataLoader(dev_data_loader, batch_size=batch_size, num_workers=num_workers // 2, shuffle=False)
 
     return (train_dataloader, dev_dataloader)
 
 
-def load_data_and_construct_dataloaders(model_type:str, batch_size:int, challenge:str,
-                                        return_class_weights:Optional[bool]=False)->\
+def load_data_and_construct_dataloaders(model_type: str, batch_size: int, challenge: str,
+                                        return_class_weights: Optional[bool] = False) -> \
         Union[Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader],
               Tuple[Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader], torch.Tensor]]:
     """
@@ -167,10 +187,10 @@ def load_data_and_construct_dataloaders(model_type:str, batch_size:int, challeng
     train, dev = load_labels_with_frame_paths(challenge=challenge)
     # define preprocessing functions
     if model_type == 'EfficientNet-B1':
-        preprocessing_functions = [partial(resize_image_saving_aspect_ratio, expected_size = 240),
+        preprocessing_functions = [partial(resize_image_saving_aspect_ratio, expected_size=240),
                                    EfficientNet_image_preprocessor()]
     elif model_type == 'EfficientNet-B4':
-        preprocessing_functions = [partial(resize_image_saving_aspect_ratio, expected_size = 380),
+        preprocessing_functions = [partial(resize_image_saving_aspect_ratio, expected_size=380),
                                    EfficientNet_image_preprocessor()]
     else:
         raise ValueError(f'The model type should be either "EfficientNet-B1" or "EfficientNet-B4".'
@@ -178,9 +198,9 @@ def load_data_and_construct_dataloaders(model_type:str, batch_size:int, challeng
     # define augmentation functions
     augmentation_functions = get_augmentation_function(training_config.AUGMENT_PROB)
     # construct data loaders
-    train_dataloader, dev_dataloader = construct_data_loaders(train, dev,preprocessing_functions, batch_size,
-                                                                    augmentation_functions,
-                                                                    num_workers=training_config.NUM_WORKERS)
+    train_dataloader, dev_dataloader = construct_data_loaders(train, dev, preprocessing_functions, batch_size,
+                                                              augmentation_functions,
+                                                              num_workers=training_config.NUM_WORKERS)
 
     if return_class_weights:
         if challenge == 'VA':
@@ -189,6 +209,7 @@ def load_data_and_construct_dataloaders(model_type:str, batch_size:int, challeng
         labels = train.iloc[:, 1:]
         labels = labels.dropna()
         class_weights = labels.sum(axis=0)
+        print(class_weights)
         class_weights = 1. / (class_weights / class_weights.sum())
         # normalize class weights
         class_weights = class_weights / class_weights.sum()
@@ -198,7 +219,6 @@ def load_data_and_construct_dataloaders(model_type:str, batch_size:int, challeng
     return (train_dataloader, dev_dataloader)
 
 
-
 @timer
 def main():
     train_data_loader, dev_data_loader, test_data_loader = load_data_and_construct_dataloaders(challenge='Exp')
@@ -206,9 +226,9 @@ def main():
         print(x.shape, y.shape)
         print("-------------------")
 
+
 if __name__ == "__main__":
     main()
-
 
 
 

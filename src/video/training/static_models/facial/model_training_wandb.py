@@ -1,6 +1,6 @@
 import sys
-sys.path.extend(["/work/home/dsu/datatools/"])
-sys.path.extend(["/work/home/dsu/ABAW_2023_SIU/"])
+sys.path.extend(["/media/legalalien/Data/ABAW/scripts/datatools/"])
+sys.path.extend(["/media/legalalien/Data/ABAW/scripts/ABAW_2023_SIU/"])
 
 import argparse
 from torchinfo import summary
@@ -46,7 +46,7 @@ def evaluate_model(model: torch.nn.Module, generator: torch.utils.data.DataLoade
 
             # forward pass
             outputs = model(inputs)
-            classification_output = outputs
+            classification_output = outputs[0]
 
             # transform classification output to fit labels
             classification_output = torch.softmax(classification_output, dim=-1)
@@ -99,6 +99,7 @@ def train_step(model: torch.nn.Module, criterion: torch.nn.Module,
     """
     # forward pass
     output = model(inputs)
+    output = output[0]
     # criterion
     classification_criterion = criterion
     # calculate loss based on mask
@@ -184,6 +185,7 @@ def train_epoch(model: torch.nn.Module, train_generator: torch.utils.data.DataLo
 
 
 def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: torch.utils.data.DataLoader,
+                device:str,
                 class_weights: torch.Tensor, MODEL_TYPE:str, BATCH_SIZE:int, ACCUMULATE_GRADIENTS:int, GRADUAL_UNFREEZING:Optional[bool]=False,
                 DISCRIMINATIVE_LEARNING:Optional[bool]=False,
                 loss_multiplication_factor:Optional[float]=None) -> None:
@@ -191,6 +193,9 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
                                                                                        DISCRIMINATIVE_LEARNING))
     # metaparams
     metaparams = {
+    	"MODEL_WEIGHTS_PATH":training_config.MODEL_WEIGHTS_PATH,
+    	"MODEL_INPUT_SIZE":training_config.MODEL_INPUT_SIZE,
+        "device": device,
         # general params
         "architecture": MODEL_TYPE,
         "MODEL_TYPE": MODEL_TYPE,
@@ -239,13 +244,13 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     wandb.config.update({'BEST_MODEL_SAVE_PATH':wandb.run.dir}, allow_val_change=True)
 
     # create model
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device(device)
     if config.MODEL_TYPE == "EfficientNet-B1":
         model = Modified_EfficientNet_B1(embeddings_layer_neurons=256, num_classes=config.NUM_CLASSES,
-                                         num_regression_neurons=None)
+                                         num_regression_neurons=2)
     elif config.MODEL_TYPE == "EfficientNet-B4":
         model = Modified_EfficientNet_B4(embeddings_layer_neurons=256, num_classes=config.NUM_CLASSES,
-                                          num_regression_neurons=None)
+                                          num_regression_neurons=2)
     else:
         raise ValueError("Unknown model type: %s" % config.MODEL_TYPE)
     # load model weights
@@ -253,7 +258,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     # send model to GPU or CPU
     model = model.to(device)
     # print model architecture
-    summary(model, (2, 3, config.MODEL_INPUT_SIZE[config.MODEL_TYPE], config.MODEL_INPUT_SIZE[config.MODEL_TYPE]))
+    summary(model, (2, 3, training_config.MODEL_INPUT_SIZE[config.MODEL_TYPE], training_config.MODEL_INPUT_SIZE[config.MODEL_TYPE]))
 
     # define all model layers (params), which will be used by optimizer
     if config.MODEL_TYPE == "EfficientNet-B1" or config.MODEL_TYPE == "EfficientNet-B4":
@@ -269,8 +274,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
         layers_unfreezer = GradualLayersUnfreezer(model=model, layers=model_layers,
                                                   layers_per_epoch=config.UNFREEZING_LAYERS_PER_EPOCH,
                                                   layers_to_unfreeze_before_start=config.LAYERS_TO_UNFREEZE_BEFORE_START,
-                                                  input_shape=(config.BATCH_SIZE, 3, training_config.MODEL_INPUT_SIZE[config.MODEL_TYPE],
-                                                               training_config.MODEL_INPUT_SIZE[config.MODEL_TYPE]),
+                                                  input_shape=(config.BATCH_SIZE, 3, training_config.MODEL_INPUT_SIZE[config.MODEL_TYPE], training_config.MODEL_INPUT_SIZE[config.MODEL_TYPE]),
                                                   verbose=True)
     # if discriminative learning is applied
     if DISCRIMINATIVE_LEARNING:
@@ -372,7 +376,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     torch.cuda.empty_cache()
 
 
-def main(challenge:str, model_type, batch_size, accumulate_gradients, gradual_unfreezing, discriminative_learning, loss_multiplication_factor):
+def main(challenge:str, device:str, model_type, batch_size, accumulate_gradients, gradual_unfreezing, discriminative_learning, loss_multiplication_factor):
     print("Start of the script....")
     # get data loaders
     (train_generator, dev_generator), class_weights = load_data_and_construct_dataloaders(
@@ -384,7 +388,8 @@ def main(challenge:str, model_type, batch_size, accumulate_gradients, gradual_un
     train_model(train_generator=train_generator, dev_generator=dev_generator,class_weights=class_weights,
                 MODEL_TYPE=model_type, BATCH_SIZE=batch_size, ACCUMULATE_GRADIENTS=accumulate_gradients,
                 GRADUAL_UNFREEZING=gradual_unfreezing, DISCRIMINATIVE_LEARNING=discriminative_learning,
-                loss_multiplication_factor=loss_multiplication_factor)
+                loss_multiplication_factor=loss_multiplication_factor,
+                device=device)
 
 
 
@@ -393,6 +398,7 @@ if __name__ == "__main__":
         prog='Emotion Recognition model training',
         epilog='Parameters: model_type, batch_size, accumulate_gradients, gradual_unfreezing, discriminative_learning')
     parser.add_argument('--challenge', type=str, required=True)
+    parser.add_argument('--device', type=str, required=True)
     parser.add_argument('--model_type', type=str, required=True)
     parser.add_argument('--batch_size', type=int, required=True)
     parser.add_argument('--accumulate_gradients', type=int, required=True)
@@ -422,8 +428,10 @@ if __name__ == "__main__":
     batch_size = args.batch_size
     accumulate_gradients = args.accumulate_gradients
     loss_multiplication_factor = args.loss_multiplication_factor
+    device = args.device
     # run main script with passed args
     main(challenge=args.challenge,
+         device=device,
          model_type = model_type, batch_size=batch_size, accumulate_gradients=accumulate_gradients,
          gradual_unfreezing=gradual_unfreezing,
          discriminative_learning=discriminative_learning,
@@ -431,4 +439,3 @@ if __name__ == "__main__":
     # clear RAM
     gc.collect()
     torch.cuda.empty_cache()
-
