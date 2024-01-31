@@ -1,0 +1,5 @@
+abaw_env/
+.vscode/
+
+ # models of spleeter
+pretrained_models/
