@@ -6,7 +6,6 @@ import os
 import wave
 import shutil
 import subprocess
-from typing import NoReturn
 
 from tqdm import tqdm
 
@@ -27,16 +26,13 @@ def get_duration(file_path: str) -> float:
     return duration_seconds
 
 
-def convert(inp_path: str, out_path: str, checking: bool = True) -> NoReturn:
+def convert(inp_path: str, out_path: str, checking: bool = True) -> None:
     """Extract speech from the video file using Spleeter and ffmpeg
 
     Args:
         inp_path (str): Input file path
         out_path (str): Output file path
         checking (bool, optional): Used for checking paths of the spleeter/ffmpeg commands. Defaults to True.
-
-    Returns:
-        NoReturn: void method
     """
     out_dirname = os.path.dirname(out_path)
     os.makedirs(out_dirname, exist_ok=True)
@@ -88,15 +84,12 @@ def convert(inp_path: str, out_path: str, checking: bool = True) -> NoReturn:
         print(inp_duration, spleeter_duration, final_duration)
 
 
-def convert_video_to_audio(files_root: str, checking: bool = True) -> NoReturn:
+def convert_video_to_audio(files_root: str, checking: bool = True) -> None:
     """Loop through the directory, and extract speech from each video file using Spleeter and ffmpeg.
 
     Args:
         files_root (str): Input directory
         checking (bool, optional): Used for checking paths of the spleeter/ffmpeg commands. Defaults to True.
-
-    Returns:
-        NoReturn: void method
     """
     # run on CPU
     os.environ["CUDA_VISIBLE_DEVICES"] = ""

@@ -7,7 +7,6 @@ Author: Danila Mamontov
 
 import os
 import glob
-from typing import NoReturn
 
 import cv2
 import pandas as pd
@@ -65,15 +64,12 @@ def calculate_surface_area(landmarks: NormalizedLandmarkList) -> float:
     return surface_area
 
 
-def extract_surface_area(path_to_images: str, path_to_landmarks: str) -> NoReturn:
+def extract_surface_area(path_to_images: str, path_to_landmarks: str) -> None:
     """Extract frame-by-frame mouth open features from images
 
     Args:
         path_to_images (str): Path to list of folder with images
         path_to_landmarks (str): Output path
-
-    Returns:
-        NoReturn: void method
     """
     mp_face_mesh = mp.solutions.face_mesh
 
