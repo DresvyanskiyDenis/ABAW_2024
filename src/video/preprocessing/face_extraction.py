@@ -1,3 +1,9 @@
+
+import sys
+sys.path.append("/nfs/home/ddresvya/scripts/ABAW_2023_SIU/")
+sys.path.append("/nfs/home/ddresvya/scripts/datatools/")
+sys.path.append("/nfs/home/ddresvya/scripts/simple-HRNet-master/")
+
 import glob
 import os
 from typing import Optional, List
@@ -11,6 +17,7 @@ import numpy as np
 from PIL import Image
 from moviepy.video.fx import crop
 from moviepy.video.io.VideoFileClip import VideoFileClip
+from tqdm import tqdm
 
 from src.video.preprocessing.face_extraction_utils import extract_face_according_bbox, recognize_faces_bboxes, \
     get_bbox_closest_to_previous_bbox, get_most_confident_person, load_and_prepare_detector_retinaFace_mobileNet
@@ -132,7 +139,7 @@ def extract_faces_from_all_videos(paths_to_videos:List[str], detector:object, ou
     # create metadata file
     metadata = pd.DataFrame(columns=["filename", "frame_num", "timestamp"])
     # go through all videos
-    for path_to_video in paths_to_videos:
+    for path_to_video in tqdm(paths_to_videos, desc="Extracting faces from videos..."):
         # extract faces from one video
         metadata_one_video = extract_face_one_video(path_to_video, detector, output_path, keep_the_same_person, every_n_frame)
         # add metadata from one video to the main metadata
@@ -207,8 +214,14 @@ def make_left_right_videos(path_to_data:str, output_path:str)->None:
 
 
 if __name__=="__main__":
-    path_to_data = r"F:\Datasets\AffWild2\videos"
-    output_path = r"F:\Datasets\AffWild2\preprocessed\faces"
+    # make left and right videos
+    """path_to_data = "/nfs/scratch/ddresvya/Data/ABAW/"
+    output_path = "/nfs/scratch/ddresvya/Data/left_right_videos/"
+    make_left_right_videos(path_to_data, output_path)"""
+
+
+    path_to_data = "/nfs/scratch/ddresvya/Data/ABAW/"
+    output_path = "/nfs/scratch/ddresvya/Data/preprocessed/faces/"
     # load detector
     detector = load_and_prepare_detector_retinaFace_mobileNet()
     paths_to_videos = glob.glob(os.path.join(path_to_data, "*"))

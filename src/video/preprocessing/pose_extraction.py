@@ -1,4 +1,7 @@
 import sys
+sys.path.append("/nfs/home/ddresvya/scripts/ABAW_2023_SIU/")
+sys.path.append("/nfs/home/ddresvya/scripts/datatools/")
+sys.path.append("/nfs/home/ddresvya/scripts/simple-HRNet-master/")
 
 
 import glob
@@ -12,6 +15,7 @@ import pandas
 import cv2
 import numpy as np
 from PIL import Image
+from tqdm import tqdm
 
 from SimpleHRNet import SimpleHRNet
 from src.video.preprocessing.pose_extraction_utils import get_bboxes_for_frame, get_bbox_closest_to_previous_bbox, \
@@ -105,7 +109,7 @@ def extract_poses_from_all_videos(paths_to_videos: List[str], detector: object, 
     # create metadata file
     metadata = pd.DataFrame(columns=["filename", "frame_num", "timestamp"])
     # go through all videos
-    for path_to_video in paths_to_videos:
+    for path_to_video in tqdm(paths_to_videos, desc="Extracting poses from videos..."):
         # extract faces from one video
         metadata_one_video =  extract_pose_one_video(path_to_video, detector, output_path,
                                                      keep_the_same_person, every_n_frame)
@@ -121,15 +125,15 @@ def extract_poses_from_all_videos(paths_to_videos: List[str], detector: object, 
 
 if __name__ == "__main__":
     # TODO: check it
-    path_to_data = r"F:\Datasets\AffWild2\videos"
-    output_path = r"F:\Datasets\AffWild2\preprocessed\poses"
+    path_to_data = "/nfs/scratch/ddresvya/Data/ABAW/"
+    output_path = "/nfs/scratch/ddresvya/Data/preprocessed/pose/"
     # load detector
     detector = SimpleHRNet(c=48, nof_joints=17, multiperson=True,
                            yolo_version = 'v3',
-                           yolo_model_def=os.path.join(r"C:\Users\flamingo\Desktop\Denis_projects\simple-HRNet-master","models_/detectors/yolo/config/yolov3.cfg"),
-                           yolo_class_path=os.path.join(r"C:\Users\flamingo\Desktop\Denis_projects\simple-HRNet-master","models_/detectors/yolo/data/coco.names"),
-                           yolo_weights_path=os.path.join(r"C:\Users\flamingo\Desktop\Denis_projects\simple-HRNet-master","models_/detectors/yolo/weights/yolov3.weights"),
-                                 checkpoint_path=r"C:\Users\flamingo\Desktop\Denis_projects\simple-HRNet-master\pose_hrnet_w48_384x288.pth",
+                           yolo_model_def=os.path.join("/nfs/home/ddresvya/scripts/simple-HRNet-master/","models_/detectors/yolo/config/yolov3.cfg"),
+                           yolo_class_path=os.path.join("/nfs/home/ddresvya/scripts/simple-HRNet-master/","models_/detectors/yolo/data/coco.names"),
+                           yolo_weights_path=os.path.join("/nfs/home/ddresvya/scripts/simple-HRNet-master/","models_/detectors/yolo/weights/yolov3.weights"),
+                                 checkpoint_path=r"/nfs/home/ddresvya/scripts/simple-HRNet-master/pose_hrnet_w48_384x288.pth",
                                  return_heatmaps=False, return_bounding_boxes=True, max_batch_size=1, device=torch.device("cuda"))
     paths_to_videos = glob.glob(os.path.join(path_to_data, "*"))
     metadata = extract_poses_from_all_videos(paths_to_videos=paths_to_videos, detector=detector,
