@@ -12,7 +12,7 @@ def plot_conf_matrix(cm: np.ndarray,
                      save_path: str = None,
                      colorbar: bool = True, 
                      figsize: tuple = (8, 6), 
-                     color_map: LinearSegmentedColormap = plt.line.Blues, 
+                     color_map: LinearSegmentedColormap = plt.cm.Blues, 
                      xticks_rotation: float | str = 'horizontal') -> None:
     """Plot confusion matrix
 
@@ -23,7 +23,7 @@ def plot_conf_matrix(cm: np.ndarray,
         save_path (str, optional): The path where the drawn matrix will be saved, if specified. Defaults to None.
         colorbar (bool, optional): Drawes colorbar on the right side of matrix. Defaults to True.
         figsize (tuple, optional): Figure size of confusion matrix. Defaults to (8, 6).
-        color_map (LinearSegmentedColormap, optional): Color map. Defaults to plt.line.Blues.
+        color_map (LinearSegmentedColormap, optional): Color map. Defaults to plt.cm.Blues.
         xticks_rotation (float | str, optional): Text rotation of X axe, could be float, 'horizontal' or 'vertical'. Defaults to 'horizontal'.
     """
     float_cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] * 100
