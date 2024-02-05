@@ -1,5 +1,5 @@
 """
-This is the script for extracting only speech from video.
+This is the script for extracting audio from video with/without filtering speech.
 """
 
 import os
@@ -26,7 +26,31 @@ def get_duration(file_path: str) -> float:
     return duration_seconds
 
 
-def convert(inp_path: str, out_path: str, checking: bool = True) -> None:
+def convert_without_filtering(inp_path: str, 
+                              out_path: str, 
+                              checking: bool = True) -> None:
+    """Convert video to audio using ffmpeg
+
+    Args:
+        inp_path (str): Input file path
+        out_path (str): Output file path
+        checking (bool, optional): Used for checking paths of the ffmpeg command. Defaults to True.
+    """
+    out_dirname = os.path.dirname(out_path)
+    os.makedirs(out_dirname, exist_ok=True)
+
+    # sample rate 16000
+    command = f"ffmpeg -y -i {inp_path} -vn -acodec pcm_s16le -ar 16000 {out_path}"
+       
+    if checking:
+        print(command)
+    else:
+        _ = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
+
+
+def convert_with_filtering(inp_path: str, 
+                           out_path: str, 
+                           checking: bool = True) -> None:
     """Extract speech from the video file using Spleeter and ffmpeg
 
     Args:
@@ -84,7 +108,11 @@ def convert(inp_path: str, out_path: str, checking: bool = True) -> None:
         print(inp_duration, spleeter_duration, final_duration)
 
 
-def convert_video_to_audio(files_root: str, checking: bool = True) -> None:
+def convert_video_to_audio(files_root: str, 
+                           wavs_root: str = 'wavs',
+                           vocals_root: str = 'vocals',
+                           filtering: bool = False,
+                           checking: bool = True) -> None:
     """Loop through the directory, and extract speech from each video file using Spleeter and ffmpeg.
 
     Args:
@@ -94,23 +122,37 @@ def convert_video_to_audio(files_root: str, checking: bool = True) -> None:
     # run on CPU
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
-    out_root = os.path.join(os.path.dirname(files_root), "vocals")
+    out_wavs_root = os.path.join(os.path.dirname(files_root), wavs_root)
+    out_vocals_root = os.path.join(os.path.dirname(files_root), vocals_root)
 
     for dn, _, fns in os.walk(os.path.join(files_root)):
         if not fns:
             continue
 
         for fn in tqdm(fns):
-            convert(
+            convert_without_filtering(
                 inp_path=os.path.join(dn, fn),
                 out_path=os.path.join(
-                    dn.replace(files_root, out_root),
+                    dn.replace(files_root, out_wavs_root),
                     fn.replace("mp4", "wav").replace("avi", "wav"),
                 ),
                 checking=checking,
             )
+            
+            if filtering:
+                convert_with_filtering(
+                    inp_path=os.path.join(dn, fn),
+                    out_path=os.path.join(
+                        dn.replace(files_root, out_vocals_root),
+                        fn.replace("mp4", "wav").replace("avi", "wav"),
+                    ),
+                    checking=checking,
+                )
 
 
 if __name__ == "__main__":
     files_root = "/media/maxim/Databases/ABAW2024/data/videos"
-    convert_video_to_audio(checking=False)
+    
+    convert_video_to_audio(files_root=files_root, 
+                           filtering=False,
+                           checking=False)
