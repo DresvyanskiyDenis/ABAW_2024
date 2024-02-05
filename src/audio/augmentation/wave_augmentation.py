@@ -107,7 +107,7 @@ class RandomChoice(torch.nn.Module):
     """Chooses randomly one transform from list of transforms, and applies to tensor
 
     Args:
-        torch (list of ``Transform`` objects): list of transform objects
+        transforms (list of ``Transform`` objects): list of transform objects
     """
     def __init__(self, transforms) -> None:
         super(RandomChoice, self).__init__()

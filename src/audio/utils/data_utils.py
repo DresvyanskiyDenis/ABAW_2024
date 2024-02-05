@@ -3,7 +3,7 @@ import inspect
 from typing import Callable
 
 def get_source_code(fns: list[Callable]) -> str:
-    """Get source code of specified functions
+    """Gets source code of specified functions
 
     Args:
         fns (list[Callable]): List of functions
@@ -19,7 +19,7 @@ def get_source_code(fns: list[Callable]) -> str:
 
 
 def get_source_code_of_file(script_path: str) -> str:
-    """Get source code of file
+    """Gets source code of file
 
     Args:
         script_path (str): File paths

@@ -40,7 +40,7 @@ def convert_without_filtering(inp_path: str,
     os.makedirs(out_dirname, exist_ok=True)
 
     # sample rate 16000
-    command = f"ffmpeg -y -i {inp_path} -vn -acodec pcm_s16le -ar 16000 {out_path}"
+    command = f"ffmpeg -y -i {inp_path} -vn -acodec pcm_s16le -ar 16000 -ac 1 {out_path}"
        
     if checking:
         print(command)
