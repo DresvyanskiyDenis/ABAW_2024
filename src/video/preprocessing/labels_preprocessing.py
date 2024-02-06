@@ -92,9 +92,7 @@ def align_labels_with_extracted_frames(path_to_metadata: str, labels: Dict[str, 
         aligned_labels = labels_for_video
         if len(labels_for_video) < len(metadata_for_video):
             metadata_for_video = metadata_for_video.iloc[:len(labels_for_video)]
-            print(f"Video {video_name} has less labels than frames. Labels: {len(labels_for_video)} < Frames: {len(metadata_for_video)}")
         elif len(labels_for_video) > len(metadata_for_video):
-            print(f"Video {video_name} has more labels than frames. Labels: {len(labels_for_video)} > Frames: {len(metadata_for_video)}")
             # repeat the last frame path with the frame_num incremented by 1 for every repeat and
             # the timestamp incremented by substraction of the last two timestamps
             # calculate new timestamps and frame numbers (which will be added)
