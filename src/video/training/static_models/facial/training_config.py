@@ -12,6 +12,7 @@ METAFILE_PATH:str = "/nfs/scratch/ddresvya/Data/preprocessed/faces/metadata.csv"
 NUM_CLASSES:int = 8
 MODEL_INPUT_SIZE:Dict[str, int] = {
 	"EfficientNet-B1":224,
+	"EfficientNet-B4":380,
 	"ViT_b_16":224,
 }
 
