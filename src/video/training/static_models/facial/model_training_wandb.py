@@ -1,6 +1,7 @@
 import sys
-sys.path.extend(["/media/legalalien/Data/ABAW/scripts/datatools/"])
-sys.path.extend(["/media/legalalien/Data/ABAW/scripts/ABAW_2023_SIU/"])
+sys.path.append("/nfs/home/ddresvya/scripts/datatools/")
+sys.path.append("/nfs/home/ddresvya/scripts/ABAW_2023_SIU/")
+sys.path.append("/nfs/home/ddresvya/scripts/simple-HRNet-master/")
 
 import argparse
 from torchinfo import summary
@@ -16,7 +17,7 @@ from sklearn.metrics import recall_score, precision_score, f1_score, accuracy_sc
 import training_config
 from pytorch_utils.lr_schedullers import WarmUpScheduler
 from pytorch_utils.models.CNN_models import Modified_EfficientNet_B1, \
-    Modified_EfficientNet_B4
+    Modified_EfficientNet_B4, Modified_ViT_B_16
 from pytorch_utils.training_utils.callbacks import TorchEarlyStopping, GradualLayersUnfreezer, gradually_decrease_lr
 from pytorch_utils.training_utils.losses import SoftFocalLoss
 
@@ -185,7 +186,7 @@ def train_epoch(model: torch.nn.Module, train_generator: torch.utils.data.DataLo
 
 
 def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: torch.utils.data.DataLoader,
-                device:str,
+                device:str, model_weights_path:str,
                 class_weights: torch.Tensor, MODEL_TYPE:str, BATCH_SIZE:int, ACCUMULATE_GRADIENTS:int, GRADUAL_UNFREEZING:Optional[bool]=False,
                 DISCRIMINATIVE_LEARNING:Optional[bool]=False,
                 loss_multiplication_factor:Optional[float]=None) -> None:
@@ -193,7 +194,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
                                                                                        DISCRIMINATIVE_LEARNING))
     # metaparams
     metaparams = {
-    	"MODEL_WEIGHTS_PATH":training_config.MODEL_WEIGHTS_PATH,
+    	"MODEL_WEIGHTS_PATH": model_weights_path,
     	"MODEL_INPUT_SIZE":training_config.MODEL_INPUT_SIZE,
         "device": device,
         # general params
@@ -251,6 +252,9 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     elif config.MODEL_TYPE == "EfficientNet-B4":
         model = Modified_EfficientNet_B4(embeddings_layer_neurons=256, num_classes=config.NUM_CLASSES,
                                           num_regression_neurons=2)
+    elif config.MODEL_TYPE == "ViT_b_16":
+        model = Modified_ViT_B_16(embeddings_layer_neurons=256, num_classes=config.NUM_CLASSES,
+                                  num_regression_neurons=2)
     else:
         raise ValueError("Unknown model type: %s" % config.MODEL_TYPE)
     # load model weights
@@ -266,6 +270,17 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
             *list(list(model.children())[0].features.children()),
             *list(list(model.children())[0].children())[1:],
             *list(model.children())[1:]  # added layers
+        ]
+    elif config.MODEL_TYPE == "ViT_b_16":
+        model_layers = [ list(model.model.children())[0], # first conv layer
+                         # encoder
+                         list(list(model.model.children())[1].children())[0], # Dropout of encoder
+                            # the encoder itself
+                            *list(list(list(model.model.children())[1].children())[1].children()), # blocks of encoder
+                            # end of the encoder itself
+                         list(list(model.model.children())[1].children())[2], # LayerNorm of encoder
+                         list(model.model.children())[2], # last linear layer
+            *list(model.children())[1:] # added layers
         ]
     else:
         raise ValueError("Unknown model type: %s" % config.MODEL_TYPE)
@@ -376,7 +391,8 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     torch.cuda.empty_cache()
 
 
-def main(challenge:str, device:str, model_type, batch_size, accumulate_gradients, gradual_unfreezing, discriminative_learning, loss_multiplication_factor):
+def main(challenge:str, device:str, model_type, model_weights_path,
+         batch_size, accumulate_gradients, gradual_unfreezing, discriminative_learning, loss_multiplication_factor):
     print("Start of the script....")
     # get data loaders
     (train_generator, dev_generator), class_weights = load_data_and_construct_dataloaders(
@@ -386,7 +402,8 @@ def main(challenge:str, device:str, model_type, batch_size, accumulate_gradients
         challenge=challenge)
     # train the model
     train_model(train_generator=train_generator, dev_generator=dev_generator,class_weights=class_weights,
-                MODEL_TYPE=model_type, BATCH_SIZE=batch_size, ACCUMULATE_GRADIENTS=accumulate_gradients,
+                MODEL_TYPE=model_type, model_weights_path=model_weights_path,
+                BATCH_SIZE=batch_size, ACCUMULATE_GRADIENTS=accumulate_gradients,
                 GRADUAL_UNFREEZING=gradual_unfreezing, DISCRIMINATIVE_LEARNING=discriminative_learning,
                 loss_multiplication_factor=loss_multiplication_factor,
                 device=device)
@@ -400,6 +417,7 @@ if __name__ == "__main__":
     parser.add_argument('--challenge', type=str, required=True)
     parser.add_argument('--device', type=str, required=True)
     parser.add_argument('--model_type', type=str, required=True)
+    parser.add_argument('--model_weights_path', type=str, required=True)
     parser.add_argument('--batch_size', type=int, required=True)
     parser.add_argument('--accumulate_gradients', type=int, required=True)
     parser.add_argument('--gradual_unfreezing', type=int, required=True)
@@ -411,8 +429,8 @@ if __name__ == "__main__":
     # check arguments
     if args.challenge not in ['VA', 'Exp']:
         raise ValueError("challenge should be either VA or Exp. Got %s" % args.challenge)
-    if args.model_type not in ['EfficientNet-B1', 'EfficientNet-B4']:
-        raise ValueError("model_type should be either EfficientNet-B1 or EfficientNet-B4. Got %s" % args.model_type)
+    if args.model_type not in ['EfficientNet-B1', 'EfficientNet-B4', 'ViT_b_16']:
+        raise ValueError("model_type should be either EfficientNet-B1, EfficientNet-B4, or ViT_b_16. Got %s" % args.model_type)
     if args.batch_size < 1:
         raise ValueError("batch_size should be greater than 0")
     if args.accumulate_gradients < 1:
@@ -425,6 +443,7 @@ if __name__ == "__main__":
     gradual_unfreezing = True if args.gradual_unfreezing == 1 else False
     discriminative_learning = True if args.discriminative_learning == 1 else False
     model_type = args.model_type
+    model_weights_path = args.model_weights_path
     batch_size = args.batch_size
     accumulate_gradients = args.accumulate_gradients
     loss_multiplication_factor = args.loss_multiplication_factor
@@ -432,7 +451,8 @@ if __name__ == "__main__":
     # run main script with passed args
     main(challenge=args.challenge,
          device=device,
-         model_type = model_type, batch_size=batch_size, accumulate_gradients=accumulate_gradients,
+         model_type = model_type, model_weights_path=model_weights_path,
+         batch_size=batch_size, accumulate_gradients=accumulate_gradients,
          gradual_unfreezing=gradual_unfreezing,
          discriminative_learning=discriminative_learning,
          loss_multiplication_factor=loss_multiplication_factor)

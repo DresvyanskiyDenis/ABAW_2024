@@ -1,19 +1,19 @@
 from typing import Dict
 
 # labels and data paths
-VA_TRAIN_LABELS_PATH:str = "/media/legalalien/Data/ABAW/5th_ABAW_Annotations/VA_Estimation_Challenge/Train_Set/"
-VA_DEV_LABELS_PATH:str = "/media/legalalien/Data/ABAW/5th_ABAW_Annotations/VA_Estimation_Challenge/Validation_Set/"
-Exp_TRAIN_LABELS_PATH:str = "/media/legalalien/Data/ABAW/5th_ABAW_Annotations/EXPR_Classification_Challenge/Train_Set/"
-Exp_DEV_LABELS_PATH:str = "/media/legalalien/Data/ABAW/5th_ABAW_Annotations/EXPR_Classification_Challenge/Validation_Set/"
+VA_TRAIN_LABELS_PATH:str = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/"
+VA_DEV_LABELS_PATH:str = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/"
+Exp_TRAIN_LABELS_PATH:str = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/"
+Exp_DEV_LABELS_PATH:str = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/"
 
-METAFILE_PATH:str = "/media/legalalien/Data/ABAW/preprocessed/preprocessed/faces/metadata.csv"
+METAFILE_PATH:str = "/nfs/scratch/ddresvya/Data/preprocessed/faces/metadata.csv"
 
 # model architecture params
 NUM_CLASSES:int = 8
 MODEL_INPUT_SIZE:Dict[str, int] = {
 	"EfficientNet-B1":224,
+	"ViT_b_16":224,
 }
-MODEL_WEIGHTS_PATH = "/media/legalalien/Data/ABAW/best_model_metric.pth"
 
 # training metaparams
 NUM_EPOCHS:int = 100

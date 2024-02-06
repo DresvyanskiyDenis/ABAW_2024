@@ -11,7 +11,8 @@ from pytorch_utils.data_loaders.pytorch_augmentations import pad_image_random_fa
     collor_jitter_image_random, gaussian_blur_image_random, random_perspective_image, random_rotation_image, \
     random_crop_image, random_posterize_image, random_adjust_sharpness_image, random_equalize_image, \
     random_horizontal_flip_image, random_vertical_flip_image
-from pytorch_utils.models.input_preprocessing import resize_image_saving_aspect_ratio, EfficientNet_image_preprocessor
+from pytorch_utils.models.input_preprocessing import resize_image_saving_aspect_ratio, EfficientNet_image_preprocessor, \
+    ViT_image_preprocessor
 
 import training_config
 from src.video.preprocessing.labels_preprocessing import load_train_dev_AffWild2_labels_with_frame_paths
@@ -73,15 +74,15 @@ def load_labels_with_frame_paths(challenge: str) -> Tuple[pd.DataFrame, pd.DataF
         dev_labels.drop(columns=["category"], inplace=True)
 
     # change the paths to the new onew because we run the script on another server
-    train_labels["path"] = train_labels["path"].apply(lambda x: x.replace("F:\\Datasets\\AffWild2\\preprocessed\\",
-                                                                          "/media/legalalien/Data/ABAW/preprocessed/preprocessed/"))
+    #train_labels["path"] = train_labels["path"].apply(lambda x: x.replace("F:\\Datasets\\AffWild2\\preprocessed\\",
+    #                                                                      "/media/legalalien/Data/ABAW/preprocessed/preprocessed/"))
 
-    dev_labels["path"] = dev_labels["path"].apply(lambda x: x.replace("F:\\Datasets\\AffWild2\\preprocessed\\",
-                                                                      "/media/legalalien/Data/ABAW/preprocessed/preprocessed/"))
+    #dev_labels["path"] = dev_labels["path"].apply(lambda x: x.replace("F:\\Datasets\\AffWild2\\preprocessed\\",
+    #                                                                  "/media/legalalien/Data/ABAW/preprocessed/preprocessed/"))
 
     # change back slashes to normal ones
-    train_labels["path"] = train_labels["path"].apply(lambda x: x.replace("\\", "/"))
-    dev_labels["path"] = dev_labels["path"].apply(lambda x: x.replace("\\", "/"))
+    #train_labels["path"] = train_labels["path"].apply(lambda x: x.replace("\\", "/"))
+    #dev_labels["path"] = dev_labels["path"].apply(lambda x: x.replace("\\", "/"))
 
     return train_labels, dev_labels
 
@@ -179,8 +180,8 @@ def load_data_and_construct_dataloaders(model_type: str, batch_size: int, challe
         The train, dev data loaders and the class weights calculated based on the training labels.
 
     """
-    if model_type not in ['EfficientNet-B1', 'EfficientNet-B4']:
-        raise ValueError('The model type should be either "EfficientNet-B1" or "EfficientNet-B4".')
+    if model_type not in ['EfficientNet-B1', 'EfficientNet-B4', 'ViT_b_16']:
+        raise ValueError('The model type should be either "EfficientNet-B1", "EfficientNet-B4", or ViT_b_16.')
     if challenge not in ['Exp', 'VA']:
         raise ValueError('The challenge should be either "Exp" or "VA".')
     # load pd.DataFrames
@@ -192,8 +193,11 @@ def load_data_and_construct_dataloaders(model_type: str, batch_size: int, challe
     elif model_type == 'EfficientNet-B4':
         preprocessing_functions = [partial(resize_image_saving_aspect_ratio, expected_size=380),
                                    EfficientNet_image_preprocessor()]
+    elif model_type == 'ViT_b_16':
+        preprocessing_functions = [partial(resize_image_saving_aspect_ratio, expected_size=224),
+                                   ViT_image_preprocessor()]
     else:
-        raise ValueError(f'The model type should be either "EfficientNet-B1" or "EfficientNet-B4".'
+        raise ValueError(f'The model type should be either "EfficientNet-B1", "EfficientNet-B4", or ViT_b_16.'
                          f'Got {model_type} instead.')
     # define augmentation functions
     augmentation_functions = get_augmentation_function(training_config.AUGMENT_PROB)
