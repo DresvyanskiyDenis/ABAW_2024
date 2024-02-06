@@ -75,7 +75,7 @@ def align_labels_with_extracted_frames(path_to_metadata: str, labels: Dict[str, 
     # load metadata
     metadata = pd.read_csv(path_to_metadata)
     # form additional columns in metadata with only the name of the video
-    metadata["video_name"] = [x.split("\\")[-2] for x in metadata["filename"]]
+    metadata["video_name"] = [x.split(os.path.sep)[-2] for x in metadata["filename"]]
     # get video names from labels
     video_names = list(labels.keys())
     # iterate over video names
@@ -92,7 +92,9 @@ def align_labels_with_extracted_frames(path_to_metadata: str, labels: Dict[str, 
         aligned_labels = labels_for_video
         if len(labels_for_video) < len(metadata_for_video):
             metadata_for_video = metadata_for_video.iloc[:len(labels_for_video)]
+            print(f"Video {video_name} has less labels than frames. Labels: {len(labels_for_video)} < Frames: {len(metadata_for_video)}")
         elif len(labels_for_video) > len(metadata_for_video):
+            print(f"Video {video_name} has more labels than frames. Labels: {len(labels_for_video)} > Frames: {len(metadata_for_video)}")
             # repeat the last frame path with the frame_num incremented by 1 for every repeat and
             # the timestamp incremented by substraction of the last two timestamps
             # calculate new timestamps and frame numbers (which will be added)
@@ -173,10 +175,10 @@ def load_train_dev_AffWild2_labels_with_frame_paths(paths_to_labels: Tuple[str, 
 
 
 def main():
-    challenge = "VA"
-    path_to_train_labels = "/media/external_hdd_2/Datasets/AffWild2/5th_ABAW_Annotations/VA_Estimation_Challenge/Train_Set/"
-    path_to_dev_labels = "/media/external_hdd_2/Datasets/AffWild2/5th_ABAW_Annotations/VA_Estimation_Challenge/Validation_Set/"
-    path_to_metadata_file = "/media/external_hdd_2/Datasets/AffWild2/preprocessed/faces/metadata.csv"
+    challenge = "Exp"
+    path_to_train_labels = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/"
+    path_to_dev_labels = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/"
+    path_to_metadata_file = "/nfs/scratch/ddresvya/Data/preprocessed/faces/metadata.csv"
 
     train_labels, dev_labels = load_train_dev_AffWild2_labels_with_frame_paths(
         paths_to_labels=(path_to_train_labels, path_to_dev_labels),
