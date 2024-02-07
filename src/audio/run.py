@@ -2,6 +2,7 @@ import sys
 
 sys.path.append('../src')
 
+import os
 from copy import deepcopy
 
 from models.audio_expr_models import *
@@ -14,11 +15,10 @@ from config import *
 
     
 def run_expression_training() -> None:
-    """Wrapper for training expression
+    """Wrapper for training expression challenge
     """
     
     model_cls = [ExprModelV1, ExprModelV2, ExprModelV3]
-    model_cls = [ExprModelV1]
     
     cfg = config_expr
     
@@ -29,7 +29,7 @@ def run_expression_training() -> None:
                 cfg['FILTERED'] = filtered
                 cfg['AUGMENTATION'] = augmentation
                 cfg['MODEL_PARAMS']['model_cls'] = m_cls
-                cfg['NUM_EPOCHS'] = 1
+                cfg['NUM_EPOCHS'] = 100
                 
                 expr_main(cfg)
     
