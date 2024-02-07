@@ -242,6 +242,7 @@ class AbawVADataset(Dataset):
         - Pads the obtained values to `max_w_len` seconds
         - Augments the obtained window
         - Extracts preliminary wav2vec features
+        - Drops channel dimension
 
         Args:
             index (int): Index of sample from metadata
@@ -264,6 +265,8 @@ class AbawVADataset(Dataset):
             a_data = self.transform(a_data)
 
         wave = self.processor(a_data, sampling_rate=a_data_sr)
+        wave = wave['input_values'][0].squeeze()
+        
         sample_info = {
             'filename': os.path.basename(data['lab_filename']),
             'start_t': data['start_t'],
@@ -274,7 +277,7 @@ class AbawVADataset(Dataset):
 
         y = data['va']
 
-        return torch.FloatTensor(wave['input_values'][0]), y, [sample_info]
+        return torch.FloatTensor(wave), y, [sample_info]
             
     def __len__(self) -> int:
         """Return number of all samples in dataset

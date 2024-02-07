@@ -2,8 +2,8 @@ import sys
 
 sys.path.append('../src')
 
-from models.audio_expr_models import ExprModelV1
-from models.audio_va_models import VAModelV1
+from models.audio_expr_models import *
+from models.audio_va_models import *
 
 config_expr: dict = {
     'WAV_ROOT': '/media/maxim/Databases/ABAW2024/data/wavs',
@@ -21,8 +21,9 @@ config_expr: dict = {
         }
     },
     'FILTERED': False,
-    'AUGMENTATION': True,
+    'AUGMENTATION': False,
     'NUM_EPOCHS': 100,
+    'BATCH_SIZE': 16,
 }
 
 config_va: dict = {
@@ -43,4 +44,5 @@ config_va: dict = {
     'FILTERED': False,
     'AUGMENTATION': False,
     'NUM_EPOCHS': 100,
+    'BATCH_SIZE': 16,
 }
