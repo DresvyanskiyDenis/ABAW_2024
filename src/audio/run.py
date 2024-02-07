@@ -20,8 +20,6 @@ def run_expression_training() -> None:
     
     model_cls = [ExprModelV1, ExprModelV2, ExprModelV3]
     
-    cfg = config_expr
-    
     for augmentation in [True, False]:
         for filtered in [True, False]:
             for m_cls in model_cls:
@@ -29,7 +27,6 @@ def run_expression_training() -> None:
                 cfg['FILTERED'] = filtered
                 cfg['AUGMENTATION'] = augmentation
                 cfg['MODEL_PARAMS']['model_cls'] = m_cls
-                cfg['NUM_EPOCHS'] = 100
                 
                 expr_main(cfg)
     
