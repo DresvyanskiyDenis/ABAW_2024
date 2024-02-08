@@ -136,7 +136,7 @@ def main(config: dict) -> None:
     class_weights = torch.Tensor(max(class_sample_count) / class_sample_count).to(device)
     loss = torch.nn.CrossEntropyLoss(weight=class_weights, label_smoothing=.2)
     
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
                                                                      T_0=10, T_mult=1,
