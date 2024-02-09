@@ -123,9 +123,12 @@ def load_labels_with_frame_paths(config:Dict[str, Union[int, float, str]]) -> Tu
     # convert categories to one-hot vectors
     train_labels = convert_categories_to_on_hot(train_labels)
     dev_labels = convert_categories_to_on_hot(dev_labels)
-    # change absolute paths to relative one up to the third directory + change slashes to the ones that current system uses
-    train_labels["path"] = train_labels["path"].apply(lambda x: str(os.path.sep).join(x.split("/")[-3:]))
-    dev_labels["path"] = dev_labels["path"].apply(lambda x: str(os.path.sep).join(x.split("/")[-3:]))
+    # change absolute paths to relative one up to the second directory + change slashes to the ones that current system uses
+    train_labels["path"] = train_labels["path"].apply(lambda x: str(os.path.sep).join(x.split("/")[-2:]))
+    dev_labels["path"] = dev_labels["path"].apply(lambda x: str(os.path.sep).join(x.split("/")[-2:]))
+    # add config['path_to_data'] to the paths
+    train_labels["path"] = config['path_to_data'] + train_labels["path"]
+    dev_labels["path"] = config['path_to_data'] + dev_labels["path"] # TODO: check it
 
     return train_labels, dev_labels
 
