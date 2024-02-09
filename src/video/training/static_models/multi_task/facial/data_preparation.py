@@ -62,8 +62,8 @@ def convert_categories_to_on_hot(df: pd.DataFrame) -> pd.DataFrame:
     df = pd.concat([df, one_hot], axis=1)
     # delete the 'category' column
     df.drop(columns=["category"], inplace=True)
-    # rename one-hot vectors
-    df.rename(columns={col: f"category_{col}" for col in one_hot.columns}, inplace=True)
+    # rename one-hot vectors using int values
+    df.rename(columns={col: f"category_{int(col)}" for col in one_hot.columns}, inplace=True)
     # for those columns, change the type to int
     for col in df.columns:
         if "category" in col:
@@ -82,12 +82,12 @@ def load_labels_with_frame_paths(config:Dict[str, Union[int, float, str]]) -> Tu
     """
     train_labels_exp, dev_labels_exp = load_train_dev_AffWild2_labels_with_frame_paths(
         paths_to_labels=(config['exp_train_labels_path'], config['exp_dev_labels_path']),
-        path_to_metadata=config['exp_metadata_path'],
+        path_to_metadata=config['metafile_path'],
         challenge="Exp") # pattern: Dict[filename: frames_with_labels] -> Dict[str, pd.DataFrame]
 
     train_labels_va, dev_labels_va = load_train_dev_AffWild2_labels_with_frame_paths(
         paths_to_labels=(config['va_train_labels_path'], config['va_dev_labels_path']),
-        path_to_metadata=config['va_metadata_path'],
+        path_to_metadata=config['metafile_path'],
         challenge="VA")
 
     # concatenate train labels from both challenges deleting duplicates
@@ -238,8 +238,9 @@ def load_data_and_construct_dataloaders(config: Dict[str, Union[int, float, str]
                                                               augmentation_functions,
                                                               num_workers=config['num_workers'])
     # generate class weights for classification labels # TODO: check it
-    num_classes = train.iloc[:, 1:].shape[1]
-    labels = train.iloc[:, 1:]
+    columns = [f'category_{i}' for i in range(train.shape[1]-3)]
+    num_classes = len(columns)
+    labels = train[columns]
     labels = labels.dropna()
     class_weights = labels.sum(axis=0)
     print(class_weights)
