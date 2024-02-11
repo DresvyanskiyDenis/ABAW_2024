@@ -6,12 +6,14 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader
+import torchvision.transforms as T
 
 from pytorch_utils.data_loaders.ImageDataLoader_new import ImageDataLoader
 from pytorch_utils.data_loaders.pytorch_augmentations import pad_image_random_factor, grayscale_image, \
     collor_jitter_image_random, gaussian_blur_image_random, random_perspective_image, random_rotation_image, \
     random_crop_image, random_posterize_image, random_adjust_sharpness_image, random_equalize_image, \
     random_horizontal_flip_image, random_vertical_flip_image
+from pytorch_utils.data_preprocessing import convert_image_to_float_and_scale
 from pytorch_utils.models.input_preprocessing import resize_image_saving_aspect_ratio, EfficientNet_image_preprocessor, \
     ViT_image_preprocessor
 from src.video.preprocessing.labels_preprocessing import load_train_dev_AffWild2_labels_with_frame_paths
@@ -217,8 +219,8 @@ def load_data_and_construct_dataloaders(config: Dict[str, Union[int, float, str]
         The train, dev data loaders and the class weights calculated based on the training labels.
 
     """
-    if config['model_type'] not in ['EfficientNet-B1', 'EfficientNet-B4', 'ViT_b_16']:
-        raise ValueError('The model type should be either "EfficientNet-B1", "EfficientNet-B4", or ViT_b_16.')
+    if config['model_type'] not in ['EfficientNet-B1', 'EfficientNet-B4', 'ViT_b_16', 'Modified_HRNet']:
+        raise ValueError('The model type should be either "EfficientNet-B1", "EfficientNet-B4", Modified_HRNet or ViT_b_16.')
     # load pd.DataFrames
     train, dev = load_labels_with_frame_paths(config)
     # define preprocessing functions
@@ -231,8 +233,13 @@ def load_data_and_construct_dataloaders(config: Dict[str, Union[int, float, str]
     elif config['model_type'] == 'ViT_b_16':
         preprocessing_functions = [partial(resize_image_saving_aspect_ratio, expected_size=224),
                                    ViT_image_preprocessor()]
+    elif config['model_type'] == 'Modified_HRNet':
+        preprocessing_functions = [partial(resize_image_saving_aspect_ratio, expected_size=256),
+                                   convert_image_to_float_and_scale,
+                                   T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                                   ]  # From HRNet
     else:
-        raise ValueError(f'The model type should be either "EfficientNet-B1", "EfficientNet-B4", or ViT_b_16.'
+        raise ValueError(f'The model type should be either "EfficientNet-B1", "EfficientNet-B4", Modified_HRNet or ViT_b_16.'
                          f'Got {config["model_type"]} instead.')
     # define augmentation functions
     augmentation_functions = get_augmentation_function(config['augmentation_probability'])
@@ -240,7 +247,7 @@ def load_data_and_construct_dataloaders(config: Dict[str, Union[int, float, str]
     train_dataloader, dev_dataloader = construct_data_loaders(train, dev, preprocessing_functions, config['batch_size'],
                                                               augmentation_functions,
                                                               num_workers=config['num_workers'])
-    # generate class weights for classification labels # TODO: check it
+    # generate class weights for classification labels
     columns = [f'category_{i}' for i in range(train.shape[1]-3)]
     num_classes = len(columns)
     labels = train[columns]
