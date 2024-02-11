@@ -130,7 +130,7 @@ def load_labels_with_frame_paths(config:Dict[str, Union[int, float, str]]) -> Tu
     dev_labels["path"] = dev_labels["path"].apply(lambda x: str(os.path.sep).join(x.split("/")[-2:]))
     # add config['path_to_data'] to the paths
     train_labels["path"] = config['path_to_data'] + train_labels["path"]
-    dev_labels["path"] = config['path_to_data'] + dev_labels["path"] # TODO: check it
+    dev_labels["path"] = config['path_to_data'] + dev_labels["path"]
 
     return train_labels, dev_labels
 
