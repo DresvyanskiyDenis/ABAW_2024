@@ -1,8 +1,6 @@
 import sys
 import os
 
-from pytorch_utils.models.Pose_estimation.HRNet import Modified_HRNet
-
 # infer the path to the project
 path_to_the_project = os.path.abspath(
     os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir,
@@ -30,6 +28,7 @@ from pytorch_utils.models.CNN_models import Modified_EfficientNet_B1, \
 from pytorch_utils.training_utils.callbacks import TorchEarlyStopping, GradualLayersUnfreezer, gradually_decrease_lr
 from pytorch_utils.training_utils.losses import SoftFocalLoss, RMSELoss
 from src.video.training.static_models.multi_task.facial.data_preparation import load_data_and_construct_dataloaders
+from pytorch_utils.models.Pose_estimation.HRNet import Modified_HRNet
 
 
 def evaluate_model(model: torch.nn.Module, generator: torch.utils.data.DataLoader, device: torch.device) -> Dict[
