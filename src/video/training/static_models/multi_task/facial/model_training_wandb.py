@@ -9,6 +9,7 @@ path_to_the_project = os.path.abspath(
 sys.path.append(path_to_the_project)
 # the same, but change "ABAW_2023_SIU" to "datatools"
 sys.path.append(path_to_the_project.replace("ABAW_2023_SIU", "datatools"))
+sys.path.append(path_to_the_project.replace("ABAW_2023_SIU", "simple-HRNet-master"))
 
 import argparse
 from torchinfo import summary
