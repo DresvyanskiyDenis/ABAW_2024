@@ -360,7 +360,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
         layers_unfreezer = GradualLayersUnfreezer(model=model, layers=model_layers,
                                                   layers_per_epoch=config.unfreezing_layers_per_epoch,
                                                   layers_to_unfreeze_before_start=config.layers_to_unfreeze_before_start,
-                                                  input_shape=(config.BATCH_SIZE, 3,
+                                                  input_shape=(config.batch_size, 3,
                                                                training_config['model_input_size'][config.model_type],
                                                                training_config['model_input_size'][config.model_type]),
                                                   verbose=True)
