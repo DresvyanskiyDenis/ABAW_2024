@@ -75,13 +75,22 @@ def convert_categories_to_on_hot(df: pd.DataFrame) -> pd.DataFrame:
 
 
 
-def load_labels_with_frame_paths(config:Dict[str, Union[int, float, str]]) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def load_labels_with_frame_paths(config:Dict[str, Union[int, float, str]], take_every_n_frame:Optional[int]=5) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """ Loads the labels with the paths to the frames. Both Expression and VA challenges will be loaded.
+
+    Args:
+        config: Dict[str, Union[int, float, str]]
+            The configuration dictionary. It contains all needed paths and training parameters.
+        take_every_n_frame: Optional[int]
+            The number of frames to take from the video. If None, all frames will be taken.
 
 
     :return: Tuple[pd.DataFrame, pd.DataFrame]
         The train and val sets.
     """
+    if take_every_n_frame is None:
+        take_every_n_frame = 1
+
     train_labels_exp, dev_labels_exp = load_train_dev_AffWild2_labels_with_frame_paths(
         paths_to_labels=(config['exp_train_labels_path'], config['exp_dev_labels_path']),
         path_to_metadata=config['metafile_path'],
@@ -111,8 +120,8 @@ def load_labels_with_frame_paths(config:Dict[str, Union[int, float, str]]) -> Tu
     train_labels = pd.concat([value for key, value in train_labels.items()], axis=0)
     dev_labels = pd.concat([value for key, value in dev_labels.items()], axis=0)
     # take every 5th frame
-    train_labels = train_labels.iloc[::5, :]
-    dev_labels = dev_labels.iloc[::5, :]
+    train_labels = train_labels.iloc[::take_every_n_frame, :]
+    dev_labels = dev_labels.iloc[::take_every_n_frame, :]
     # for Exp challenge, substitute -1 with np.NaN
     train_labels["category"] = train_labels["category"].replace(-1, np.NaN)
     dev_labels["category"] = dev_labels["category"].replace(-1, np.NaN)
