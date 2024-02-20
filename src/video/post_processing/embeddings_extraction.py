@@ -102,7 +102,7 @@ def initialize_model_and_preprocessing_fucntions(config)->Tuple[torch.nn.Module,
 
 def extract_features(config):
     # load train and dev data
-    train, dev = load_labels_with_frame_paths(config)
+    train, dev = load_labels_with_frame_paths(config, take_every_n_frame=1)
     # initialize model and preprocessing functions
     extractor_model, preprocessing_functions = initialize_model_and_preprocessing_fucntions(config)
     # initialize embeddings extractor
