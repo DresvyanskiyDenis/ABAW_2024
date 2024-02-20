@@ -28,7 +28,7 @@ from pytorch_utils.models.CNN_models import Modified_EfficientNet_B1, \
     Modified_EfficientNet_B4, Modified_ViT_B_16
 from pytorch_utils.training_utils.callbacks import TorchEarlyStopping, GradualLayersUnfreezer, gradually_decrease_lr
 from pytorch_utils.training_utils.losses import SoftFocalLoss, RMSELoss
-from src.video.training.static_models.multi_task.facial.data_preparation import load_data_and_construct_dataloaders
+from src.video.training.static_models.multi_task.data_preparation import load_data_and_construct_dataloaders
 from pytorch_utils.models.Pose_estimation.HRNet import Modified_HRNet
 
 

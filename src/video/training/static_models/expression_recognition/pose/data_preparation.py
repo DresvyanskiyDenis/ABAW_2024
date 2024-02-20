@@ -11,7 +11,7 @@ from pytorch_utils.data_loaders.pytorch_augmentations import pad_image_random_fa
     collor_jitter_image_random, gaussian_blur_image_random, random_perspective_image, random_rotation_image, \
     random_crop_image, random_posterize_image, random_adjust_sharpness_image, random_equalize_image, \
     random_horizontal_flip_image, random_vertical_flip_image
-from pytorch_utils.models.input_preprocessing import resize_image_saving_aspect_ratio, EfficientNet_image_preprocessor
+from pytorch_utils.models.input_preprocessing import resize_image_saving_aspect_ratio
 
 import training_config
 
@@ -178,9 +178,9 @@ def load_data_and_construct_dataloaders(model_type:str, batch_size:int, challeng
     # define augmentation functions
     augmentation_functions = get_augmentation_function(training_config.AUGMENT_PROB)
     # construct data loaders
-    train_dataloader, dev_dataloader = construct_data_loaders(train, dev,preprocessing_functions, batch_size,
-                                                                    augmentation_functions,
-                                                                    num_workers=training_config.NUM_WORKERS)
+    train_dataloader, dev_dataloader = construct_data_loaders(train, dev, preprocessing_functions, batch_size,
+                                                              augmentation_functions,
+                                                              num_workers=training_config.NUM_WORKERS)
 
     if return_class_weights:
         if challenge == 'VA':

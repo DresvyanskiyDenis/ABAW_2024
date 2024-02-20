@@ -195,7 +195,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     # metaparams
     metaparams = {
     	"MODEL_WEIGHTS_PATH": model_weights_path,
-    	"MODEL_INPUT_SIZE":training_config.MODEL_INPUT_SIZE,
+    	"MODEL_INPUT_SIZE": training_config.MODEL_INPUT_SIZE,
         "device": device,
         # general params
         "architecture": MODEL_TYPE,

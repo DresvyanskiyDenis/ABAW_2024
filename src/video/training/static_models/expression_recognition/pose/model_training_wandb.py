@@ -15,8 +15,6 @@ from sklearn.metrics import recall_score, precision_score, f1_score, accuracy_sc
 
 import training_config
 from pytorch_utils.lr_schedullers import WarmUpScheduler
-from pytorch_utils.models.CNN_models import Modified_EfficientNet_B1, \
-    Modified_EfficientNet_B4
 from pytorch_utils.training_utils.callbacks import TorchEarlyStopping, GradualLayersUnfreezer, gradually_decrease_lr
 from pytorch_utils.training_utils.losses import SoftFocalLoss
 
