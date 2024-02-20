@@ -13,6 +13,10 @@ class UniModalTemporalModel(torch.nn.Module):
         self.num_regression_neurons = num_regression_neurons
         self.__initialize_temporal_part()
 
+        self.classifier = torch.nn.Linear(in_features=self.num_features//4, out_features=self.num_classes)
+        self.regressor = torch.nn.Linear(in_features=self.num_features//4, out_features=self.num_regression_neurons)
+
+
     def __initialize_temporal_part(self):
         # make the first part of the model as torch list
         self.first_temporal_part = torch.nn.ModuleList()
@@ -61,7 +65,10 @@ class UniModalTemporalModel(torch.nn.Module):
         # third temporal part
         for layer in self.third_temporal_part:
             x = layer(x, x, x)
-        return x
+        # classification
+        class_output = self.classifier(x)
+        regression_output = self.regressor(x)
+        return class_output, regression_output
 
 
 
@@ -69,6 +76,6 @@ if __name__ == "__main__":
     model = UniModalTemporalModel(input_shape=(20,256), num_classes=8, num_regression_neurons=2)
     print(model)
     x = torch.rand(32, 20, 256)
-    print(model(x).shape)
+    print(model(x))
     import torchsummary
     torchsummary.summary(model, (20, 256), device='cpu')
