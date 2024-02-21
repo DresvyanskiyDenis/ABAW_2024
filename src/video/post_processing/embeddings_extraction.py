@@ -7,9 +7,10 @@ import os
 import sys
 
 path_to_project = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir,
-                 os.path.pardir, os.path.pardir)) + os.path.sep
+    os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir)) + os.path.sep
 sys.path.append(path_to_project)
+sys.path.append(path_to_project.replace("ABAW_2023_SIU", "datatools"))
+sys.path.append(path_to_project.replace("ABAW_2023_SIU", "simple-HRNet-master"))
 
 import torch
 
@@ -88,10 +89,10 @@ def initialize_model_and_preprocessing_fucntions(config)->Tuple[torch.nn.Module,
             def forward(self, x):
                 return self.model(x)[0]
         model = Wrapper(model)
-        model.eval()
-
     else:
         raise ValueError(f"Unknown model type: {config['model_type']}")
+    # turn model to evaluation mode
+    model.eval()
 
     return model, preprocessing_functions
 
@@ -110,9 +111,9 @@ def extract_features(config):
                                                output_shape=256)
     # extract embeddings
     embeddings_extractor.extract_embeddings(train, output_path=config['output_path_train'],
-                                                               batch_size=64, num_workers=4, verbose=True)
+                                                               batch_size=130, num_workers=4, verbose=True)
     embeddings_extractor.extract_embeddings(dev, output_path=config['output_path_dev'],
-                                                                batch_size=64, num_workers=4, verbose=True)
+                                                                batch_size=130, num_workers=4, verbose=True)
 
 
 
