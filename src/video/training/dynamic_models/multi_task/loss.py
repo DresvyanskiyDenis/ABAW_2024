@@ -1,6 +1,11 @@
+from typing import Optional
+
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
+from torch import Tensor
+
+from pytorch_utils.training_utils.losses import SoftFocalLoss
 
 
 class CCCLoss(nn.Module):
@@ -73,4 +78,31 @@ class VALoss(nn.Module):
             Tensor: VA loss value
         """
         loss = self.alpha * self.ccc(x[:, 0], y[:, 0]) + self.beta * self.ccc(x[:, 1], y[:, 1])
+        return loss
+
+
+class SoftFocalLossForSequence(nn.Module):
+    """ Calculates the SoftFocalLoss for the sequence of predictions.
+    To calculate the FocalLoss for every timestep, uses SoftFocalLoss class
+
+    """
+    def __init__(self, softmax: bool,
+                 alpha: Optional[Tensor] = None,
+                 gamma: float = 0.,
+                 aggregation: str = 'mean'):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.softmax = softmax
+        self.aggregation = aggregation
+        self.timestep_focal_loss = SoftFocalLoss(softmax=softmax, alpha=alpha, gamma=gamma)
+
+    def forward(self, x: Tensor, y: Tensor) -> Tensor:
+        # x and y have the shape (batch, timesteps, num_classes)
+        # calculate the loss for each timestep
+        loss = torch.stack([self.timestep_focal_loss(x[:, i, :], y[:, i, :]) for i in range(x.shape[1])])
+        if self.aggregation == 'mean':
+            return loss.mean()
+        elif self.aggregation == 'sum':
+            return loss.sum()
         return loss
