@@ -2,7 +2,8 @@ import sys
 import os
 
 from src.video.training.dynamic_models.dynamic_models import UniModalTemporalModel
-from src.video.training.dynamic_models.multi_task.loss import VALoss
+from src.video.training.dynamic_models.multi_task.loss import VALoss, SoftFocalLossForSequence
+from src.video.training.dynamic_models.multi_task.metrics import np_concordance_correlation_coefficient
 from src.video.training.dynamic_models.multi_task.training_utils import train_epoch
 
 # infer the path to the project
@@ -31,12 +32,104 @@ from pytorch_utils.lr_schedullers import WarmUpScheduler
 from pytorch_utils.training_utils.callbacks import TorchEarlyStopping, GradualLayersUnfreezer, gradually_decrease_lr
 from pytorch_utils.training_utils.losses import SoftFocalLoss, RMSELoss
 
-def evaluate_model():
-    pass
+def evaluate_model(model:torch.nn.Module, dev_generator:torch.utils.data.DataLoader, device:torch.device) -> Dict[str, float]:
+    classification_metrics = {
+        'val_recall': recall_score,
+        'val_precision': precision_score,
+        'val_f1': f1_score,
+        'val_accuracy': accuracy_score
+    }
+    regression_metrics = {
+        'a_val_MAE' : mean_absolute_error,
+        'v_val_MAE' : mean_absolute_error,
+        'a_val_CCC' : np_concordance_correlation_coefficient,
+        'v_val_CCC' : np_concordance_correlation_coefficient,
+    }
+    model.eval()
+    classification_predictions = []
+    classification_ground_truths = []
+    regression_predictions_a = []
+    regression_ground_truths_a = []
+    regression_predictions_v = []
+    regression_ground_truths_v = []
+    with torch.no_grad():
+        for i, data in enumerate(dev_generator):
+            # get the inputs; data is a list of [inputs, labels]
+            inputs, labels = data  # labels: arousal, valence, one-hot encoded labels
+            # generate masks for each output of the model
+            masks = ~torch.isnan(labels) # TODO: check the masking generation
+            # move data to device
+            inputs = inputs.float().to(device)
+            labels = labels.to(device)
+            masks = masks.to(device)
+            # forward
+            outputs = model(*inputs) # outputs shape Tuple[(batch_size, num_timesteps, num_classes), (batch_size, num_timesteps, 2)]
+            # separate outputs
+            classification_output = outputs[0]
+            regression_output_a = outputs[1][:,:, 0]
+            regression_output_v = outputs[1][:,:, 1]
+            # separate labels (ground truths)
+            classification_gt = labels[:,:,0] # TODO: check it
+            regression_gt_a = labels[:,:,1] # TODO: check it
+            regression_gt_v = labels[:,:,2] # TODO: check it
+            # apply masks
+            classification_output = classification_output[masks[:,:,0]]
+            regression_output_a = regression_output_a[masks[:,:,1]]
+            regression_output_v = regression_output_v[masks[:,:,2]]
+            classification_gt = classification_gt[masks[:,:,0]]
+            regression_gt_a = regression_gt_a[masks[:,:,1]]
+            regression_gt_v = regression_gt_v[masks[:,:,2]]
+            # softmax and argmax for classification
+            classification_output = torch.softmax(classification_output, dim=-1)
+            classification_output = torch.argmax(classification_output, dim=-1)
+            classification_gt = torch.argmax(classification_gt, dim=-1)
+            # append to lists
+            classification_predictions.append(classification_output.detach().cpu().numpy())
+            classification_ground_truths.append(classification_gt.detach().cpu().numpy())
+            regression_predictions_a.append(regression_output_a.detach().cpu().numpy())
+            regression_ground_truths_a.append(regression_gt_a.detach().cpu().numpy())
+            regression_predictions_v.append(regression_output_v.detach().cpu().numpy())
+            regression_ground_truths_v.append(regression_gt_v.detach().cpu().numpy())
+    # reshape and concatenate the classification predictions and ground truths
+    classification_predictions = np.concatenate([item.reshape((-1,)) for item in classification_predictions], axis=0)
+    classification_ground_truths = np.concatenate([item.reshape((-1,)) for item in classification_ground_truths], axis=0)
+    # reshape and concatenate the regression predictions and ground truths. Now every element of the list has shape
+    # (batch_size, num_timesteps) and we need to reshape them to (num_instances,num_timesteps). where
+    # num_instances = sum(element.shape[0] for element in the list)
+    tmp_list = []
+    for item in regression_predictions_a:
+        elements = [item[i, :] for i in range(item.shape[0])]
+        tmp_list.extend(elements)
+    regression_predictions_a = np.array(tmp_list)
+    tmp_list = []
+    for item in regression_ground_truths_a:
+        elements = [item[i, :] for i in range(item.shape[0])]
+        tmp_list.extend(elements)
+    regression_ground_truths_a = np.array(tmp_list)
+    tmp_list = []
+    for item in regression_predictions_v:
+        elements = [item[i, :] for i in range(item.shape[0])]
+        tmp_list.extend(elements)
+    regression_predictions_v = np.array(tmp_list)
+    tmp_list = []
+    for item in regression_ground_truths_v:
+        elements = [item[i, :] for i in range(item.shape[0])]
+        tmp_list.extend(elements)
+    regression_ground_truths_v = np.array(tmp_list)
+    # calculate metrics
+    classification_metrics = {key: value(classification_ground_truths, classification_predictions) for key, value in classification_metrics.items()}
+    regression_metrics = {key: value(regression_ground_truths_a, regression_predictions_a) for key, value in regression_metrics.items() if 'a' in key}
+    regression_metrics_2 = {key: value(regression_ground_truths_v, regression_predictions_v) for key, value in regression_metrics.items() if 'v' in key}
+    regression_metrics.update(regression_metrics_2)
+    # clear RAM
+    del classification_predictions, classification_ground_truths, regression_predictions_a, regression_ground_truths_a, regression_predictions_v, regression_ground_truths_v
+    gc.collect()
+    torch.cuda.empty_cache()
+    return {**classification_metrics, **regression_metrics}
 
 
 def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: torch.utils.data.DataLoader,
-                device: torch.device, class_weights: torch.Tensor, training_config):
+                device: torch.device, class_weights: torch.Tensor, training_config:dict):
     training_config['device'] = device
     print("____________________________________________________")
     print("Training params:")
@@ -67,7 +160,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
                                              weight_decay=config.weight_decay)
     # Loss functions
     class_weights = class_weights.to(device)
-    criterions = [SoftFocalLoss(softmax=True, alpha=class_weights, gamma=2),
+    criterions = [SoftFocalLossForSequence(softmax=True, alpha=class_weights, gamma=2, aggregation='mean'),
                   VALoss(0.5, 0.5)]
     criterion_weights = config.loss_weights
     criterions = list(zip(criterions, criterion_weights))

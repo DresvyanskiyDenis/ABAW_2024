@@ -28,23 +28,23 @@ def train_step(model: torch.nn.Module, criterions: List[torch.nn.Module],
     # forward pass
     if len(inputs) == 1:
         inputs = inputs[0]
-    outputs = model(inputs)
+    outputs = model(inputs) # output is a tuple of tensors (batch_size, num_timesteps, num_classes), (batch_size, num_timesteps, 2)
     if isinstance(outputs, torch.Tensor):
         outputs = [outputs]
     # outputs are tuple of tensors. First element is class probabilities, second element is regression output (arousal + valence)
     # transform them to list of tensors, keeping 2D
-    outputs = [outputs[0], outputs[1][:, 0].unsqueeze(1), outputs[1][:, 1].unsqueeze(1)]
+    outputs = [outputs[0], outputs[1][:, :, 0].unsqueeze(-1), outputs[1][:, :, 1].unsqueeze(-1)]
     # transform ground truth labels to fit predictions and sklearn metrics (originally, it is arousal, valence, one-hot encoded labels)
-    ground_truths = [ground_truths[0][:, 2:], ground_truths[0][:, 0].unsqueeze(1), ground_truths[0][:, 1].unsqueeze(1)]
+    ground_truths = [ground_truths[0], ground_truths[1][:, :, 0].unsqueeze(-1), ground_truths[1][:, :, 1].unsqueeze(-1)]
     # transform masks to fit predictions
     if masks is not None:
-        masks = [masks[0][:, 2:], masks[0][:, 0].unsqueeze(1), masks[0][:, 1].unsqueeze(1)]
+        masks = [masks[0][:, :, 2:], masks[0][:, :, 0].unsqueeze(1), masks[0][:, :, 1].unsqueeze(1)] # TODO: check if it is correct
     # checking input parameters
     if len(criterions) != len(outputs):
         raise ValueError("Number of criterions should be equal to number of outputs of the model.")
     # calculating criterions
     # apply masks for each output of the model and the corresponding ground truth
-    if masks is not None:
+    if masks is not None: # TODO: check the masking
         shapes = [gt.shape for gt in ground_truths]
         ground_truths = [torch.masked_select(gt, mask) for gt, mask in zip(ground_truths, masks)]
         outputs = [output[mask] for output, mask in zip(outputs, masks)]
@@ -101,7 +101,7 @@ def train_epoch(model: torch.nn.Module, train_generator: torch.utils.data.DataLo
         if not isinstance(labels, list):
             labels = [labels]
         # generate masks for each output of the model
-        masks = [~torch.isnan(lb) for lb in labels]
+        masks = [~torch.isnan(lb) for lb in labels] # TODO: check the masking generation
         # move data to device
         inputs = [inp.float().to(device) for inp in inputs]
         labels = [lb.to(device) for lb in labels]
