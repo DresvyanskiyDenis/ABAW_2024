@@ -1,5 +1,6 @@
 import os
 import time
+import math
 import random
 import logging
 import functools
@@ -94,3 +95,25 @@ def majority_voting(targets: list[np.ndarray], predicts: list[np.ndarray], sampl
     # one-hot encoding grouped predicts
     preds = [(np.arange(len(predicts[0])) == i).astype(int) for i in df['predicts'].values]
     return df['targets'].to_list(), preds, df['filenames'].to_list()
+
+
+def round_math(val: float) -> int:
+    """Rounds value. Proposed by Elena Ryumina
+
+    Args:
+        val (float): Value
+
+    Returns:
+        int: Rounded value
+    """
+    modf = math.modf(val)
+
+    if modf[0] >= 0.5:
+        res = modf[1] + 1
+    else:
+        if modf[0] <= -0.5:
+            res = modf[1] - 1
+        else:
+            res = math.ceil(modf[1])
+
+    return int(res)

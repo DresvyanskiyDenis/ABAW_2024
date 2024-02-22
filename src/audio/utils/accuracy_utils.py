@@ -57,7 +57,7 @@ def recall(targets: list[np.ndarray], predicts: list[np.ndarray], average: str =
         float: Recall value
     """
     predicts = proba_to_class_num(predicts)
-    return metrics.recall_score(targets, predicts, average=average)
+    return metrics.recall_score(targets, predicts, average=average, zero_division=np.nan)
 
 
 def precision(targets: list[np.ndarray], predicts: list[np.ndarray], average: str = None) -> float:
@@ -72,7 +72,7 @@ def precision(targets: list[np.ndarray], predicts: list[np.ndarray], average: st
         float: Precision value
     """
     predicts = proba_to_class_num(predicts)
-    return metrics.precision_score(targets, predicts, average=average)
+    return metrics.precision_score(targets, predicts, average=average, zero_division=np.nan)
 
 
 def f1(targets: list[np.ndarray], predicts: list[np.ndarray], average: str = None) -> float:
@@ -87,7 +87,7 @@ def f1(targets: list[np.ndarray], predicts: list[np.ndarray], average: str = Non
         float: F1 value
     """
     predicts = proba_to_class_num(predicts)
-    return metrics.f1_score(targets, predicts, average=average)
+    return metrics.f1_score(targets, predicts, average=average, zero_division=np.nan)
 
 
 def accuracy(targets: list[np.ndarray], predicts: list[np.ndarray], average: str = None) -> float:

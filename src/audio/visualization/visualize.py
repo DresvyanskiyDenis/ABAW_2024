@@ -26,7 +26,7 @@ def plot_conf_matrix(cm: np.ndarray,
         color_map (LinearSegmentedColormap, optional): Color map. Defaults to plt.cm.Blues.
         xticks_rotation (float | str, optional): Text rotation of X axe, could be float, 'horizontal' or 'vertical'. Defaults to 'horizontal'.
     """
-    float_cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] * 100
+    float_cm = cm.astype('float') / (cm.sum(axis=1)[:, np.newaxis] + 1e-6) * 100
 
     fig, ax = plt.subplots(figsize=figsize)
     n_classes = cm.shape[0]

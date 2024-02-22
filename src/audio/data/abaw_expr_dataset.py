@@ -57,6 +57,7 @@ class AbawExprDataset(Dataset):
         
         self.meta = []
         self.labels = []
+        self.threshold = .5 # num of seconds with open mouth for threshold. 0 - default, without threshold
         
         self.processor = Wav2Vec2Processor.from_pretrained(processor_name)
         
@@ -67,7 +68,7 @@ class AbawExprDataset(Dataset):
                        lab_filename: str, 
                        frame_rate: float = 30.0) -> tuple[list[dict], list]:
         """Creates windows with `shift`, `max_w_len`, `min_w_len` in the following steps:
-        - Filters frames with mouth_open, and with labels
+        - Filters frames with mouth_open, and with labels using threshold
         - Splits data on consecutive row values (based on lab_id = frame_id - 1):
             [0, 1, 2, 6, 10, 11, 12, 14, 15, 16] -> [[0, 1, 2], [6], [10, 11, 12], [14, 15, 16]]
         - Splits obtained sequences with `shift`, `max_w_len`, `min_w_len`:
@@ -102,7 +103,11 @@ class AbawExprDataset(Dataset):
         min_w_len = round(self.min_w_len * frame_rate)
 
         # filter mouth_open and mislabeled
-        lab_feat_df = lab_feat_df[(lab_feat_df['label'] != -1) & (lab_feat_df['mouth_open'] == 1)]
+        mouth_open_threshold = round(self.threshold * frame_rate)
+        lab_feat_df['mouth_closed'] = 1 - lab_feat_df['mouth_open']
+        s = lab_feat_df['mouth_closed'].diff().ne(0).cumsum()
+        lab_feat_df = lab_feat_df[(lab_feat_df['label'] != -1) & ((s.groupby(s).transform('size') < mouth_open_threshold)  | (lab_feat_df['mouth_open'] == 1))]
+        
         # Split the data frame based on consecutive row values differences
         sequences = dict(tuple(lab_feat_df.groupby(lab_feat_df['lab_id'].diff().gt(1).cumsum())))
         
@@ -124,6 +129,9 @@ class AbawExprDataset(Dataset):
                     temp = labels[-max_w_len:]
                     start = frames[max(0, len(labels) - max_w_len)] # 0 or frame[-max_w_len]
                     end = frames[-1]
+
+                    if len(labels) <= max_w_len:
+                        continue
 
                 final_label = max(set(temp), key=temp.count)
 
@@ -192,8 +200,8 @@ class AbawExprDataset(Dataset):
 
                 labs_and_feats = labs.merge(features, how='left', left_on='lab_id', right_on='frame')
                 labs_and_feats[['mouth_open']] = labs_and_feats[['mouth_open']].fillna(value=0.0)
-
                 v_fps = self.find_corresponding_video_fps(fp)
+
                 timings, all_labs = self.parse_features(lab_feat_df=labs_and_feats, 
                                                         lab_filename=fp, 
                                                         frame_rate=v_fps)
@@ -202,7 +210,7 @@ class AbawExprDataset(Dataset):
     
     def __getitem__(self, index: int) -> tuple[torch.Tensor, int, list[dict]]:
         """Gets sample from dataset:
-        - Reads all audio and converts stereo to mono
+        - Reads audio
         - Selects indexes of audio according to metadata
         - Pads the obtained values to `max_w_len` seconds
         - Augments the obtained window
@@ -221,6 +229,8 @@ class AbawExprDataset(Dataset):
         a_data, a_data_sr = torchaudio.load(os.path.join(self.audio_root, wav_path))
 
         a_data = a_data[:, round(a_data_sr * data['start_t']): round(a_data_sr * data['end_t'])]
+        print('NON ZERO ', torch.count_nonzero(a_data))
+        
         a_data = torch.nn.functional.pad(a_data, 
                                          (0, max(0, self.max_w_len * a_data_sr - a_data.shape[1])), 
                                          mode='constant')

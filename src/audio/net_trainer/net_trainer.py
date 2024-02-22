@@ -228,7 +228,7 @@ class NetTrainer:
                     model.to(self.device)
                 
                 if self.problem_type == ProblemType.CLASSIFICATION:
-                    if ('devel' in phase) and (epoch == max_perf['devel']['epoch']) and ('test' in phase):
+                    if os.path.exists(os.path.join(self.logging_paths['model_path'], 'epoch_{0}.pth'.format(epoch))):
                         cm = conf_matrix(targets, predicts, [i for i in range(len(self.c_names))])
                         res_name = 'epoch_{0}_{1}_{2}'.format(epoch, phase, epoch_score)
                         plot_conf_matrix(cm,
