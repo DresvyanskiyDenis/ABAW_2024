@@ -31,11 +31,9 @@ model_root = audeer.mkdir('/media/legalalien/Data1/Androids-Corpus/data_pre/pdem
 # Load model from model_root using audonnx package.
 model = audonnx.load(model_root)
 # Set audio sampling rate. 
-# I think the sampling rate of DAIC-WOZ audio data is 16000 indeed, so you don't need to change this setting.
 sampling_rate = 16000
 
-# Define model interface, output is valence, arousal and donimance scores. This format is fixed defined by audinterface pacakage.
-# You can adjust the parameter num_workers, the bigger the faster, as long as your computer can tolerate.
+# Define model interface, output is valence, arousal and donimance scores. 
 logits = audinterface.Feature(
     model.labels('logits'),
     process_func=model,

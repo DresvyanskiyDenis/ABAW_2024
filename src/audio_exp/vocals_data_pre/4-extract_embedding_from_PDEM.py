@@ -26,7 +26,6 @@ url = 'https://zenodo.org/record/6221127/files/w2v2-L-robust-12.6bc4a7fd-1.1.0.z
 model_cache_root = audeer.mkdir('/media/legalalien/Data1/Androids-Corpus/data_pre/pdem_cache')
 model_root = audeer.mkdir('/media/legalalien/Data1/Androids-Corpus/data_pre/pdem_model')
 
-# You don't need download the PDEM model again since you have done it previous (4) script.
 
 # archive_path = audeer.download_url(url, model_cache_root, verbose=True)
 # audeer.extract_archive(archive_path, model_root)
@@ -35,11 +34,9 @@ model_root = audeer.mkdir('/media/legalalien/Data1/Androids-Corpus/data_pre/pdem
 model = audonnx.load(model_root)
 
 # Set audio sampling rate. 
-# I think the sampling rate of DAIC-WOZ audio data is 16000 indeed, so you don't need to change this setting.
 sampling_rate = 16000
 
-# Define model interface, output is PDEM embedding. This format is fixed defined by audinterface pacakage.
-# You can adjust the parameter num_workers, the bigger the faster, as long as your computer can tolerate.
+# Define model interface, output is PDEM embedding.
 hidden_states = audinterface.Feature(
     model.labels('hidden_states'),
     process_func=model,
