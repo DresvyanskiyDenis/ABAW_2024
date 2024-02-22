@@ -4,3 +4,5 @@ __pycache__/
 
  # models of spleeter
 pretrained_models/
+
+src/audio/config.py # You shold make a copy of default_config.py

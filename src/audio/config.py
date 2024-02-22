@@ -26,15 +26,16 @@ config_expr: dict = {
     'BATCH_SIZE': 16,
 }
 
-config_va: dict = {
+config_vae: dict = {
     'WAV_ROOT': '/media/maxim/Databases/ABAW2024/data/wavs',
     'FILTERED_WAV_ROOT': '/media/maxim/Databases/ABAW2024/data/vocals',
     'VIDEO_ROOT': '/media/maxim/Databases/ABAW2024/data/videos',
-    'LABELS_ROOT': '/media/maxim/Databases/ABAW2024/6th_ABAW_Annotations/VA_Estimation_Challenge',
+    'LABELS_VA_ROOT': '/media/maxim/Databases/ABAW2024/6th_ABAW_Annotations/VA_Estimation_Challenge',
+    'LABELS_EXPR_ROOT': '/media/maxim/Databases/ABAW2024/6th_ABAW_Annotations/EXPR_Classification_Challenge',
     'FEATURES_ROOT': '/media/maxim/Databases/ABAW2024/features/open_mouth',
     
     ###
-    'LOGS_ROOT': '/media/maxim/WesternDigital/ABAWLogs/VA',
+    'LOGS_ROOT': '/media/maxim/WesternDigital/ABAWLogs/VAE',
     'MODEL_PARAMS': {
         'model_cls': VAModelV1,
         'args': {
@@ -42,7 +43,7 @@ config_va: dict = {
         }
     },
     'FILTERED': False,
-    'AUGMENTATION': False,
+    'AUGMENTATION': True,
     'NUM_EPOCHS': 100,
     'BATCH_SIZE': 16,
 }
