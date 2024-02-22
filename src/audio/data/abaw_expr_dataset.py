@@ -229,7 +229,6 @@ class AbawExprDataset(Dataset):
         a_data, a_data_sr = torchaudio.load(os.path.join(self.audio_root, wav_path))
 
         a_data = a_data[:, round(a_data_sr * data['start_t']): round(a_data_sr * data['end_t'])]
-        print('NON ZERO ', torch.count_nonzero(a_data))
         
         a_data = torch.nn.functional.pad(a_data, 
                                          (0, max(0, self.max_w_len * a_data_sr - a_data.shape[1])), 
