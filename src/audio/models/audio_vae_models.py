@@ -16,7 +16,7 @@ from transformers.models.wav2vec2.modeling_wav2vec2 import (
 from models.attention_layers import TransformerLayer
 
 
-class ExprModelV1(Wav2Vec2PreTrainedModel):
+class VAEModelV1(Wav2Vec2PreTrainedModel):
     def __init__(self, config) -> None:
         super().__init__(config)
         self.config = config
@@ -26,19 +26,23 @@ class ExprModelV1(Wav2Vec2PreTrainedModel):
         self.tanh = nn.Tanh()
  
         self.f_size = 256
-        self.time_downsample = torch.nn.Sequential(
+        self.time_downsample_va = torch.nn.Sequential(
             torch.nn.Conv1d(self.f_size, self.f_size, kernel_size=5, stride=3, dilation=2),
             torch.nn.BatchNorm1d(self.f_size),
-            torch.nn.MaxPool1d(5),
+            torch.nn.AdaptiveAvgPool1d(20),
             torch.nn.ReLU(),
- 
-            torch.nn.Conv1d(self.f_size, self.f_size, kernel_size=3),
+        )
+
+        self.time_downsample_e = torch.nn.Sequential(
+            torch.nn.Conv1d(self.f_size, self.f_size, kernel_size=5, stride=2),
             torch.nn.BatchNorm1d(self.f_size),
-            torch.nn.AdaptiveAvgPool1d(1),
+            torch.nn.AdaptiveAvgPool1d(4),
             torch.nn.ReLU(),
         )
  
-        self.feature_downsample = nn.Linear(self.f_size, 8)
+        self.feature_downsample_va = nn.Linear(self.f_size, 2)
+        self.feature_downsample_e = nn.Linear(self.f_size, 8)
+        self.tanh_va = nn.Tanh()
  
         self.init_weights()
         self.unfreeze_last_n_blocks(2)
@@ -53,20 +57,36 @@ class ExprModelV1(Wav2Vec2PreTrainedModel):
             for param in self.wav2vec2.encoder.layers[-1 * (i + 1)].parameters():
                 param.requires_grad = True
  
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> list[torch.Tensor]:
+        """Forward pass
+        wav2vec2 (bs, 199, 256) => x_va (bs, 20, 256) => x_e (bs, 4, 256)
+                                   x_va (bs, 20, 2)      x_e (bs, 4, 8)
+                                            list [x_va, x_e]
+        
+        Args:
+            x (torch.Tensor): Tensor of shape (bs, 64000), where 64000 = 16000 * 4 sec.
+
+        Returns:
+            list[torch.Tensor]: Return valence/arousal values and expression probability (without softmax)
+        """
         outputs = self.wav2vec2(x)
  
         x, h = self.gru(outputs[0])
 
         x = x.permute(0, 2, 1)
-        x = self.time_downsample(x)
- 
-        x = x.squeeze()
-        x = self.feature_downsample(x)
-        return x
+        x_va = self.time_downsample_va(x)
+        x_e = self.time_downsample_e(x_va)
+
+        x_va = x_va.permute(0, 2, 1)
+        x_va = self.feature_downsample_va(x_va)
+        x_va = self.tanh_va(x_va)
+
+        x_e = x_e.permute(0, 2, 1)
+        x_e = self.feature_downsample_e(x_e)
+        return [x_va, x_e]
 
 
-class ExprModelV2(Wav2Vec2PreTrainedModel):
+class VAEModelV2(Wav2Vec2PreTrainedModel):
     def __init__(self, config) -> None:
         super().__init__(config)
         self.config = config
@@ -76,19 +96,24 @@ class ExprModelV2(Wav2Vec2PreTrainedModel):
         self.tl2 = TransformerLayer(input_dim=1024, num_heads=16, dropout=0.1, positional_encoding=True)
         
         self.f_size = 1024
-        self.time_downsample = torch.nn.Sequential(
+        self.time_downsample_va = torch.nn.Sequential(
             torch.nn.Conv1d(self.f_size, self.f_size, kernel_size=5, stride=3, dilation=2),
             torch.nn.BatchNorm1d(self.f_size),
-            torch.nn.MaxPool1d(5),
+            torch.nn.AdaptiveAvgPool1d(20),
             torch.nn.ReLU(),
+        )
 
-            torch.nn.Conv1d(self.f_size, self.f_size, kernel_size=3),
+        self.time_downsample_e = torch.nn.Sequential(
+            torch.nn.Conv1d(self.f_size, self.f_size, kernel_size=5, stride=2),
             torch.nn.BatchNorm1d(self.f_size),
-            torch.nn.AdaptiveAvgPool1d(1),
+            torch.nn.AdaptiveAvgPool1d(4),
             torch.nn.ReLU(),
         )
  
-        self.feature_downsample = nn.Linear(self.f_size, 8)
+        self.feature_downsample_va = nn.Linear(self.f_size, 2)
+        self.feature_downsample_e = nn.Linear(self.f_size, 8)
+        
+        self.tanh_va = nn.Tanh()
 
         self.init_weights()
         self.unfreeze_last_n_blocks(2)
@@ -110,14 +135,19 @@ class ExprModelV2(Wav2Vec2PreTrainedModel):
         x = self.tl2(query=x, key=x, value=x)
 
         x = x.permute(0, 2, 1)
-        x = self.time_downsample(x)
-        
-        x = x.squeeze()
-        x = self.feature_downsample(x)
-        return x
+        x_va = self.time_downsample_va(x)
+        x_e = self.time_downsample_e(x_va)
+
+        x_va = x_va.permute(0, 2, 1)
+        x_va = self.feature_downsample_va(x_va)
+        x_va = self.tanh_va(x_va)
+
+        x_e = x_e.permute(0, 2, 1)
+        x_e = self.feature_downsample_e(x_e)
+        return [x_va, x_e]
     
     
-class ExprModelV3(Wav2Vec2PreTrainedModel):
+class VAEModelV3(Wav2Vec2PreTrainedModel):
     def __init__(self, config) -> None:
         super().__init__(config)
         self.config = config
@@ -127,19 +157,24 @@ class ExprModelV3(Wav2Vec2PreTrainedModel):
         self.tl2 = TransformerLayer(input_dim=1024, num_heads=16, dropout=0.1, positional_encoding=True)
         
         self.f_size = 1024
-        self.time_downsample = torch.nn.Sequential(
+        self.time_downsample_va = torch.nn.Sequential(
             torch.nn.Conv1d(self.f_size, self.f_size, kernel_size=5, stride=3, dilation=2),
             torch.nn.BatchNorm1d(self.f_size),
-            torch.nn.MaxPool1d(5),
+            torch.nn.AdaptiveAvgPool1d(20),
             torch.nn.ReLU(),
+        )
 
-            torch.nn.Conv1d(self.f_size, self.f_size, kernel_size=3),
+        self.time_downsample_e = torch.nn.Sequential(
+            torch.nn.Conv1d(self.f_size, self.f_size, kernel_size=5, stride=2),
             torch.nn.BatchNorm1d(self.f_size),
-            torch.nn.AdaptiveAvgPool1d(1),
+            torch.nn.AdaptiveAvgPool1d(4),
             torch.nn.ReLU(),
         )
  
-        self.feature_downsample = nn.Linear(self.f_size, 8)
+        self.tanh_va = nn.Tanh()
+    
+        self.feature_downsample_va = nn.Linear(self.f_size, 2)
+        self.feature_downsample_e = nn.Linear(self.f_size, 8)
         
         self.init_weights()
         self.unfreeze_last_n_blocks(4)
@@ -166,11 +201,16 @@ class ExprModelV3(Wav2Vec2PreTrainedModel):
         x = self.tl2(query=x, key=x, value=x)
 
         x = x.permute(0, 2, 1)
-        x = self.time_downsample(x)
-        
-        x = x.squeeze()
-        x = self.feature_downsample(x)
-        return x
+        x_va = self.time_downsample_va(x)
+        x_e = self.time_downsample_e(x_va)
+
+        x_va = x_va.permute(0, 2, 1)
+        x_va = self.feature_downsample_va(x_va)
+        x_va = self.tanh_va(x_va)
+
+        x_e = x_e.permute(0, 2, 1)
+        x_e = self.feature_downsample_e(x_e)
+        return [x_va, x_e]
 
 
 def get_weights(model):
@@ -181,10 +221,10 @@ if __name__ == "__main__":
     sampling_rate = 16000
     inp_v = torch.zeros((4, sampling_rate * 4))
     model_name = 'audeering/wav2vec2-large-robust-12-ft-emotion-msp-dim'
-    model_cls = ExprModelV1
+    model_cls = VAEModelV1
 
     model = model_cls.from_pretrained(model_name)
 
     res = model(inp_v)
     print(res)
-    print(res.shape)
+    print(res[1].shape)

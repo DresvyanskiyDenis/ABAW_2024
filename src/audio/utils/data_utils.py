@@ -1,12 +1,11 @@
 import inspect
 
-from typing import Callable
 
-def get_source_code(fns: list[Callable]) -> str:
+def get_source_code(fns: list[callable]) -> str:
     """Gets source code of specified functions
 
     Args:
-        fns (list[Callable]): List of functions
+        fns (list[callable]): List of functions
 
     Returns:
         str: Source code of specified functions

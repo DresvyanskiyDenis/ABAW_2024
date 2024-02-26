@@ -16,6 +16,8 @@ from transformers import Wav2Vec2Processor
 
 from config import config_va
 
+from utils.common_utils import round_math, bytes_to_array, array_to_bytes
+
 
 class AbawVADataset(Dataset):
     """Valence\Arousal dataset
@@ -31,7 +33,6 @@ class AbawVADataset(Dataset):
         min_w_len (int, optional): Minimum window length in seconds. Defaults to 2.
         max_w_len (int, optional): Maximum window length in seconds. Defaults to 4.
         transform (torchvision.transforms.transforms.Compose, optional): transform object. Defaults to None.
-        frames_to_seconds (bool, optional): TODO. Defaults to True.
         processor_name (str, optional): Name of model in transformers library. Defaults to 'audeering/wav2vec2-large-robust-12-ft-emotion-msp-dim'.
     """
     
@@ -45,7 +46,6 @@ class AbawVADataset(Dataset):
                  min_w_len: int = 2, 
                  max_w_len: int = 4, 
                  transform: torchvision.transforms.transforms.Compose = None, 
-                 frames_to_seconds: bool = True, 
                  processor_name: str = 'audeering/wav2vec2-large-robust-12-ft-emotion-msp-dim') -> None:
         
         self.audio_root = audio_root
@@ -59,9 +59,10 @@ class AbawVADataset(Dataset):
         self.max_w_len = max_w_len
         
         self.transform = transform
-        self.frames_to_seconds = frames_to_seconds
         
         self.meta = []
+        self.threshold = 0 # num of seconds with open mouth for threshold. 0 - default, without threshold
+        self.new_fps = 5 # downsampling to fps per second
         
         self.processor = Wav2Vec2Processor.from_pretrained(processor_name)
         
@@ -69,125 +70,120 @@ class AbawVADataset(Dataset):
     
     def parse_features(self, 
                        lab_feat_df: pd.core.frame.DataFrame, 
-                       lab_filename: str, 
-                       frame_rate: float = 30.0) -> list[dict]:
+                       lab_filename: str) -> list[dict]:
         """Creates windows with `shift`, `max_w_len`, `min_w_len` in the following steps:
-        - Filters frames with mouth_open, and with va values
+        - Gets FPS and number of frames 
+        - Filters frames with mouth_open, and with va using threshold
         - Splits data on consecutive row values (based on lab_id = frame_id - 1):
             [0, 1, 2, 6, 10, 11, 12, 14, 15, 16] -> [[0, 1, 2], [6], [10, 11, 12], [14, 15, 16]]
-        
         
         - Splits obtained sequences with `shift`, `max_w_len`, `min_w_len`:
             skips sequence with length less than `min_w_len`
             or
             splits sequence on windows:
-                `seg` - pointer of label index where window is started, 
-                        iterates from 0 to len of sequence (or labels) with step of `shift`
-                `temp` - windowed labels with indexes from `seg` to `seg + max_w_len`
+                `seg` - pointer of frame index where window is started, 
+                        iterates from 0 to len of sequence (or frame) with step of `shift`
+                `va_window` - window with indexes from `seg` to `seg + max_w_len`
                 `start` - pointer for first frame number of window (frame number + `seg`)
                 `end` - pointer for last frame number of window without last element 
-                        (frame number + `seg` + len(`temp`) - 1)
+                        (frame number + `seg` + len(`va_window`) - 1)
                 
-                if length of obtained windowed labels (`temp`) less than `min_w_len`
+                if length of obtained window (`va_window`) less than `min_w_len`
                 forms window from the end of sequence:
-                    `temp` - windowed labels from end to start with length of `max_w_len`
-                    `start` - 0 if `max_w_len` greater than labels length 
+                    `va_window` - window with indexes from end to start with length of `max_w_len`
+                    `start` - 0 if `max_w_len` greater than frames length 
                               (it means that in sequence there is only one segment with length less than `max_w_len`)
-                              len(labels) - max_w_len) else
+                              len(`frames`) - `max_w_len`) else
                     `end` - last frame number
-                    
-                Since this is seq2seq modeling, it expands the number of va values to `max_w_len`, duplicating the last element
-                    f.e. frame_rate = 30, len(va_values) = 76, max_w_len = 4 * 30. 
-                    In this case we will have only 3 seconds of VA.
-                Then splits the resulting array into an array with shapes of `max_w_len` x `frame_rate` x 2, rounding `frame_rate`
-                Combines the values of va second by second using mean and cuts off the ends due to rounding frame rates
-                Obtains an array of 2 x `max_w_len`
-                At the last stage, checks for element-by-element duplication with the previous window (if there is one):
-                    f.e. frame_rate = 30, len(va_values) = 111, max_w_len = 4 * 30. 
-                    seg 0: 0-120: init temp len - 111 -> 111 -> 120
-                    seg 1: 60-180: init temp len - 51 -> 111 -> 120
-                    seg 0 = seg 1
+                    Drop this window if len(`frames`) < `max_w_len` to avoid duplicates:
+                        f.e. frame_rate = 30, len(seq) = 76, max_w_len = 4 * 30. In this case we 
+                        will have only 3 seconds of VA.
+                        seg 0: frames 0 - 60 extended to 4 * 30 and converted to 0 - 76
+                        seg 1: frames 60 - 76 extended to 4 * 30 and converted to 0 - 76
+        - Pads labels values to `max_w_len` seconds
                 
         Args:
             lab_feat_df (pd.core.frame.DataFrame): Features with labels dataframe
             lab_filename (str): Lab filename
-            frame_rate (float, optional): Frame rate of video. Defaults to 30.0.
 
         Returns:
-            list[dict]: Created list of window info (lab_filename, start_t, end_t, start_f, end_f, va)
+            (list[dict]): Created list of window info (lab_filename, start_t, end_t, start_f, end_f, va)
         """
-        if self.frames_to_seconds:
-            shift = round(self.shift * frame_rate)
-            max_w_len = round(self.max_w_len * frame_rate)
-            min_w_len = round(self.min_w_len * frame_rate)
-        else: # todo round error
-            shift = self.shift * round(frame_rate)
-            max_w_len = self.max_w_len * round(frame_rate)
-            min_w_len = self.min_w_len * round(frame_rate)
+        frame_rate, num_frames = self.find_corresponding_video_info(lab_filename)
+        
+        shift = self.shift * round_math(frame_rate)
+        max_w_len = self.max_w_len * round_math(frame_rate)
+        min_w_len = self.min_w_len * round_math(frame_rate)
 
         # filter mouth_open and mislabeled
-        lab_feat_df = lab_feat_df[(lab_feat_df['valence'] > -5) & (lab_feat_df['arousal'] > -5) & (lab_feat_df['mouth_open'] == 1)]
+        mouth_open_threshold = self.threshold * round_math(frame_rate)
+        lab_feat_df['mouth_closed'] = 1 - lab_feat_df['mouth_open']
+        s = lab_feat_df['mouth_closed'].diff().ne(0).cumsum()
+        lab_feat_df = lab_feat_df[((s.groupby(s).transform('size') < mouth_open_threshold) | (lab_feat_df['mouth_open'] == 1))]
+        lab_feat_df = lab_feat_df[(lab_feat_df['valence'] != -5) & (lab_feat_df['arousal'] != -5)].reset_index(drop=True)
 
+        # select frames with index
+        lab_feat_df['frame_id'] = (lab_feat_df['lab_id'] - 1) # Work with lab_id instead of frame, frame contains Nan
+        downsampled_frames = list(map(round_math, np.arange(0, max_w_len - 1, round_math(frame_rate) / self.new_fps, dtype=float)))
+        
         # Split the data frame based on consecutive row values differences
         sequences = dict(tuple(lab_feat_df.groupby(lab_feat_df['lab_id'].diff().gt(1).cumsum())))
         timings = []
         for idx, s in sequences.items():
-            frames = s['lab_id'].to_list()
-            va_values = s[['valence', 'arousal']].values.T
+            frames = s['frame'].astype(int).to_list()
+            va_values = s[['valence', 'arousal']].values
             
-            if len(va_values[0]) < min_w_len: # less than min_w_len
+            if len(frames) < min_w_len: # less than min_w_len
                 continue
 
-            for seg in range(0, len(va_values[0]), shift):
-                temp = va_values[:, seg: seg + max_w_len]
-                start = frames[0] + seg
-                end = frames[0] + seg + len(temp[0]) - 1 # skip last frame
+            for seg in range(0, len(frames), shift):
+                va_window = va_values[seg: seg + max_w_len, :]
+                start = frames[seg]
+                end_idx = seg + len(va_window)
+                end = frames[end_idx - 1] if end_idx > len(frames) - 1 else frames[end_idx] # skip last frame
                 
-                if len(temp[0]) < max_w_len: # if less than max_w_len: get last -max_w_len elements
-                    temp = va_values[:, -max_w_len:]
-                    start = frames[max(0, len(va_values[0]) - max_w_len)] # 0 or frame[-max_w_len]
+                if len(va_window) < max_w_len: # if less than max_w_len: get last -max_w_len elements
+                    va_window = va_values[-max_w_len:, :]
+                    start = frames[max(0, len(frames) - max_w_len)] # 0 or frame[-max_w_len]
                     end = frames[-1]
+                    
+                    val = np.pad(va_window, 
+                                 [(0, max(0, max_w_len - len(va_window))), (0, 0)], 
+                                 'edge')
+                    val = val[downsampled_frames, :]
+                    
+                    timings.append({
+                        'lab_filename': lab_filename,
+                        'start_t': start / round_math(frame_rate),
+                        'end_t': end / round_math(frame_rate),
+                        'start_f': start,
+                        'end_f': end,
+                        'va': array_to_bytes(val) # make val hashable
+                    })
 
-                # padded temp to length of (2, max_w_len) with last value of temp[:, -1]
-                # f.e. frame_rate = 30, len(temp) = 76, max_w_len = 4 * 30. In this case we will have only 3 seconds of VA.
-                temp_p = np.pad(temp, [(0, 0), (0, abs(len(temp[0]) - max_w_len))], 'edge')
-                w = np.split(temp_p.T, np.arange(round(frame_rate), len(temp_p.T), round(frame_rate)))
-
-                if self.frames_to_seconds: # join va by frame-rate into (2 x 4)
-                    final_va = np.asarray([np.mean(i, axis=0) for i in w]).T[:, :self.max_w_len] # drop last frames due to non-integer framerate
-                else: # join va by frame-rate into (2 x 4 x 30)
-                    final_va = np.asarray(w).reshape(2, -1, round(frame_rate))[:, :self.max_w_len, :] # drop last frames due to non-integer framerate
-                
-                # check duplicates
-                # f.e. frame_rate = 30, len(seq) = 76, max_w_len = 4 * 30. In this case we will have only 3 seconds of VA.
-                # seg 0: frames 0 - 60 extended to 4 * 30 and converted to 0 - 76
-                # seg 1: frames 60 - 76 extended to 4 * 30 and converted to 0 - 76
-                if len(timings) > 0 and np.allclose(timings[-1]['va'], final_va, atol=10e-7):
-                    continue
-
-                timings.append({
-                    'lab_filename': lab_filename,
-                    'start_t': start / frame_rate,
-                    'end_t': end / frame_rate,
-                    'start_f': start,
-                    'end_f': end,
-                    'va': final_va[:, :4]
-                })
-
+        # check duplicates
+        # f.e. frame_rate = 30, len(seq) = 76, max_w_len = 4 * 30. In this case we will have only 3 seconds of VA.
+        # seg 0: frames 0 - 60 extended to 4 * 30 and converted to 0 - 76
+        # seg 1: frames 60 - 76 extended to 4 * 30 and converted to 0 - 76
+        timings = [dict(t) for t in {tuple(d.items()) for d in timings}]
+        
+        for t in timings:
+            t['va'] = bytes_to_array(t['va'])
+        
         return timings
     
-    def find_corresponding_video_fps(self, lab_filename: str) -> float:
-        """Finds video fps with corresponding label file in the following steps:
+    def find_corresponding_video_info(self, lab_filename: str) -> tuple[float, float]:
+        """Finds video info with corresponding label file in the following steps:
         - Removes extension of file, '_left', '_right' prefixes from label filename
         - Forms list with corresponding video files (with duplicates)
         - Picks first video from video files candidates
-        - Gets FPS of video file
+        - Gets FPS and total number of frames of video file
 
         Args:
             lab_filename (str): Label filename
 
         Returns:
-            float: FPS value
+            tuple[float, float]: FPS value and total number of frames
         """
         lab_filename = lab_filename.split('.')[0]
         lab_fns = [lab_filename.split(postfix)[0] for postfix in ['_right', '_left']]
@@ -197,7 +193,8 @@ class AbawVADataset(Dataset):
 
         vidcap = cv2.VideoCapture(os.path.join(self.video_root, list(set(res))[0]))
         fps = vidcap.get(cv2.CAP_PROP_FPS)
-        return fps
+        num_frames = vidcap.get(cv2.CAP_PROP_FRAME_COUNT)
+        return fps, num_frames
         
     def prepare_data(self):
         """
@@ -218,7 +215,7 @@ class AbawVADataset(Dataset):
                 if '.DS_Store' in filename:
                     continue
                 
-                labs = pd.read_csv(filename, sep=',')
+                labs = pd.read_csv(filename, sep=',', names=['valence', 'arousal'], header=0)
                 labs['lab_id'] = labs.index + 1
 
                 features = pd.read_csv(os.path.join(self.features_root, fp.replace('txt', 'csv')), 
@@ -229,10 +226,8 @@ class AbawVADataset(Dataset):
                 labs_and_feats = labs.merge(features, how='left', left_on='lab_id', right_on='frame')
                 labs_and_feats[['mouth_open']] = labs_and_feats[['mouth_open']].fillna(value=0.0)
 
-                v_fps = self.find_corresponding_video_fps(fp)
                 timings = self.parse_features(lab_feat_df=labs_and_feats, 
-                                              lab_filename=fp,
-                                              frame_rate=v_fps)
+                                              lab_filename=fp)
                 self.meta.extend(timings)
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, np.ndarray, list[dict]]:
@@ -254,9 +249,8 @@ class AbawVADataset(Dataset):
 
         wav_path = data['lab_filename'].replace('_right', '').replace('_left', '').replace('txt', 'wav')        
         a_data, a_data_sr = torchaudio.load(os.path.join(self.audio_root, wav_path))
-
-
-        a_data = a_data[:, round(a_data_sr * data['start_t']): round(a_data_sr * data['end_t'])]
+        a_data = a_data[:, round(a_data_sr * data['start_t']): min(round(a_data_sr * data['end_t']), 
+                                                                   a_data_sr * (data['end_t'] + self.max_w_len))] # Due to rounding error fps - cut off window end
         a_data = torch.nn.functional.pad(a_data, 
                                          (0, max(0, self.max_w_len * a_data_sr - a_data.shape[1])), 
                                          mode='constant')
@@ -291,10 +285,17 @@ class AbawVADataset(Dataset):
 if __name__ == "__main__":
     avad = AbawVADataset(audio_root=config_va['FILTERED_WAV_ROOT'],
                          video_root=config_va['VIDEO_ROOT'],
-                         labels_root=config_va['LABELS_ROOT'],
+                         labels_root=os.path.join(config_va['LABELS_ROOT'], 'Train_Set'),
                          features_root=config_va['FEATURES_ROOT'],
                          shift=2, min_w_len=2, max_w_len=4)
-    print(len(avad))
-    print(avad[0][0].shape)
-    print(avad[0][1].shape)
-    print(type(avad[0][1]))
+        
+    dl = torch.utils.data.DataLoader(
+        avad,
+        batch_size=8,
+        shuffle=False,
+        num_workers=8)
+
+    for d in dl:
+        pass
+            
+    print('OK')

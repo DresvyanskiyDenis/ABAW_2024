@@ -4,6 +4,7 @@ import math
 import random
 import logging
 import functools
+from io import BytesIO
 
 import numpy as np
 import pandas as pd
@@ -117,3 +118,30 @@ def round_math(val: float) -> int:
             res = math.ceil(modf[1])
 
     return int(res)
+
+
+def array_to_bytes(x: np.ndarray) -> bytes:
+    """Converts numpy array to bytes
+
+    Args:
+        x (np.ndarray): Numpy array
+
+    Returns:
+        bytes: Bytes
+    """
+    np_bytes = BytesIO()
+    np.save(np_bytes, x, allow_pickle=True)
+    return np_bytes.getvalue()
+
+
+def bytes_to_array(b: bytes) -> np.ndarray:
+    """Converts bytes to numpy array
+
+    Args:
+        b (bytes): Bytes
+
+    Returns:
+        np.ndarray: Numpy array
+    """
+    np_bytes = BytesIO(b)
+    return np.load(np_bytes, allow_pickle=True)

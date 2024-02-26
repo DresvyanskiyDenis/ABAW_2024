@@ -1,7 +1,6 @@
 import os
 import logging
 from enum import Enum
-from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -40,7 +39,7 @@ class NetTrainer:
             log_root (str): Directory for logging
             experiment_name (str): Name of experiments for logging
             c_names (list[str]): Class names to calculate the confusion matrix 
-            metrics (list[Callable]): List of performance measures based on the best results of which the model will be saved. 
+            metrics (list[callable]): List of performance measures based on the best results of which the model will be saved. 
                                       The first measure (0) in the list will be used for this, the others provide 
                                       additional information
             device (torch.device): Device where the model will be trained
@@ -56,7 +55,7 @@ class NetTrainer:
                  log_root: str, 
                  experiment_name: str,
                  c_names: list[str], 
-                 metrics: list[Callable], 
+                 metrics: list[callable], 
                  device: torch.device, 
                  problem_type: ProblemType = ProblemType.CLASSIFICATION,
                  group_predicts_fn: callable = None, 
@@ -316,8 +315,10 @@ class NetTrainer:
             preds = None
             with torch.set_grad_enabled('train' in phase):
                 preds = self.model(inps)
-                if has_labels:
+                if self.problem_type == ProblemType.CLASSIFICATION:
                     loss_value = self.loss(preds, labs)
+                else:
+                    loss_value = self.loss(preds.reshape(-1, 2), labs.reshape(-1, 2)) 
 
                 # backward + optimize only if in training phase
                 if ('train' in phase) and has_labels:
@@ -332,7 +333,7 @@ class NetTrainer:
             
             targets.extend(labs.cpu().numpy())
             if self.problem_type == ProblemType.CLASSIFICATION:
-                preds = F.softmax(preds, dim=1)
+                preds = F.softmax(preds, dim=-1)
 
             predicts.extend(preds.cpu().detach().numpy())
             sample_info.extend(s_info)

@@ -134,42 +134,52 @@ def ccc_score(targets: list[np.ndarray], predicts: list[np.ndarray], average: st
     return numerator / denominator
 
 
-def v_score(targets: list[np.ndarray], predicts: list[np.ndarray], average: str = None) -> float:
-    """Computes CCC score for valence. It is first ([:, 0, :]) item in predicts/targets)
+def v_score(targets: list[np.ndarray] | np.ndarray, 
+            predicts: list[np.ndarray] | np.ndarray, 
+            average: str = None) -> float:
+    """Computes CCC score for valence. It is first item ([:, :, 0]) in predicts/targets
 
     Args:
-        targets (list[np.ndarray]): Targets array
-        predicts (list[np.ndarray]): Predicts array
+        targets (list[np.ndarray] | np.ndarray): Targets array
+        predicts (list[np.ndarray] | np.ndarray): Predicts array
         average (str, optional): Not used here. Defaults to None.
 
     Returns:
         float: CCC score for valence
     """
-    targets = np.stack(targets)
-    predicts = np.stack(predicts)
+    if isinstance(targets, list):
+        targets = np.stack(targets)
+    
+    if isinstance(predicts, list):
+        predicts = np.stack(predicts) 
 
-    targets_v = targets[:, 0, :].flatten().tolist()
-    predicts_v = predicts[:, 0, :].flatten().tolist()
+    targets_v = targets[:, :, 0].flatten().tolist()
+    predicts_v = predicts[:, :, 0].flatten().tolist()
 
     return ccc_score(targets_v, predicts_v)
 
 
-def a_score(targets: list[np.ndarray], predicts: list[np.ndarray], average: str = None) -> float:
-    """Computes CCC score for arousal. It is second ([:, 1, :]) item in predicts/targets)
+def a_score(targets: list[np.ndarray] | np.ndarray, 
+            predicts: list[np.ndarray] | np.ndarray, 
+            average: str = None) -> float:
+    """Computes CCC score for arousal. It is second item ([:, :, 1]) in predicts/targets
 
     Args:
-        targets (list[np.ndarray]): Targets array
-        predicts (list[np.ndarray]): Predicts array
+        targets (list[np.ndarray] | np.ndarray): Targets array
+        predicts (list[np.ndarray] | np.ndarray): Predicts array
         average (str, optional): Not used here. Defaults to None.
 
     Returns:
         float: CCC score for valence
     """
-    targets = np.stack(targets)
-    predicts = np.stack(predicts)
+    if isinstance(targets, list):
+        targets = np.stack(targets)
     
-    targets_a = targets[:, 1, :].flatten().tolist()
-    predicts_a = predicts[:, 1, :].flatten().tolist()
+    if isinstance(predicts, list):
+        predicts = np.stack(predicts) 
+        
+    targets_a = targets[:, :, 1].flatten().tolist()
+    predicts_a = predicts[:, :, 1].flatten().tolist()
     
     return ccc_score(targets_a, predicts_a)
 
