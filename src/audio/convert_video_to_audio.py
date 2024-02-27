@@ -40,7 +40,7 @@ def convert_without_filtering(inp_path: str,
     os.makedirs(out_dirname, exist_ok=True)
 
     # sample rate 16000
-    command = f"ffmpeg -y -i {inp_path} -vn -acodec pcm_s16le -ar 16000 -ac 1 {out_path}"
+    command = f"ffmpeg -y -i {inp_path} -async 1 -vn -acodec pcm_s16le -ar 16000 -ac 1 {out_path}"
        
     if checking:
         print(command)
@@ -62,7 +62,7 @@ def convert_with_filtering(inp_path: str,
     os.makedirs(out_dirname, exist_ok=True)
 
     # 44100 for spleeter
-    command = f"ffmpeg -y -i {inp_path} -vn -acodec pcm_s16le -ar 44100 {out_path}"
+    command = f"ffmpeg -y -i {inp_path} -async 1 -vn -acodec pcm_s16le -ar 44100 {out_path}"
        
     if checking:
         print(command)
@@ -72,7 +72,7 @@ def convert_with_filtering(inp_path: str,
     inp_duration = get_duration(out_path)
 
     # extract speech using spleeter
-    command = f"spleeter separate -o {out_dirname} {out_path} -d 1620"
+    command = f"spleeter separate -o {out_dirname} {out_path} -d 1620" # d 1620 - maximum length in seconds
     if checking:
         print(command)
     else:
@@ -83,7 +83,7 @@ def convert_with_filtering(inp_path: str,
     spleeter_duration = get_duration(out_path)
 
     # convert 44100 to 16000
-    command = "ffmpeg -y -i {0} -ar 16000 -ac 1 {1}".format(
+    command = "ffmpeg -y -i {0} -async 1 -ar 16000 -ac 1 {1}".format(
         os.path.join(
             out_dirname, os.path.basename(out_path).split(".")[0], "vocals.wav"
         ),

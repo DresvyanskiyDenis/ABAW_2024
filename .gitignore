@@ -2,5 +2,8 @@ abaw_env/
 .vscode/
 __pycache__/
 
- # models of spleeter
+# models of spleeter
 pretrained_models/
+
+# You shold make a copy of default_config.py
+/src/audio/config.py 
