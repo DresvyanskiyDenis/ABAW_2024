@@ -1,7 +1,7 @@
 import gc
 from typing import Optional, Tuple, List
 
-from wandb.integration import torch
+import torch
 
 
 def train_step(model: torch.nn.Module, criterions: List[torch.nn.Module],
@@ -33,12 +33,12 @@ def train_step(model: torch.nn.Module, criterions: List[torch.nn.Module],
         outputs = [outputs]
     # outputs are tuple of tensors. First element is class probabilities, second element is regression output (arousal + valence)
     # transform them to list of tensors, keeping 2D
-    outputs = [outputs[0], outputs[1][:, :, 0].unsqueeze(-1), outputs[1][:, :, 1].unsqueeze(-1)]
+    outputs = [outputs[0], outputs[1]]
     # transform ground truth labels to fit predictions and sklearn metrics (originally, it is arousal, valence, one-hot encoded labels)
-    ground_truths = [ground_truths[0], ground_truths[1][:, :, 0].unsqueeze(-1), ground_truths[1][:, :, 1].unsqueeze(-1)]
+    ground_truths = [ground_truths[0][:,:,:8], ground_truths[0][:,:,8:]]
     # transform masks to fit predictions
     if masks is not None:
-        masks = [masks[0][:, :, 2:], masks[0][:, :, 0].unsqueeze(1), masks[0][:, :, 1].unsqueeze(1)] # TODO: check if it is correct
+        masks = [masks[0][:,:,:8], masks[0][:,:,8:]]
     # checking input parameters
     if len(criterions) != len(outputs):
         raise ValueError("Number of criterions should be equal to number of outputs of the model.")
@@ -101,7 +101,7 @@ def train_epoch(model: torch.nn.Module, train_generator: torch.utils.data.DataLo
         if not isinstance(labels, list):
             labels = [labels]
         # generate masks for each output of the model
-        masks = [~torch.isnan(lb) for lb in labels] # TODO: check the masking generation
+        masks = [~torch.isnan(lb) for lb in labels]
         # move data to device
         inputs = [inp.float().to(device) for inp in inputs]
         labels = [lb.to(device) for lb in labels]

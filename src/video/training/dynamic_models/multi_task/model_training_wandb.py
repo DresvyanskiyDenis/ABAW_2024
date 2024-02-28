@@ -2,13 +2,15 @@ import sys
 import os
 
 from src.video.training.dynamic_models.dynamic_models import UniModalTemporalModel
+from src.video.training.dynamic_models.multi_task.data_preparation import get_train_dev_dataloaders
 from src.video.training.dynamic_models.multi_task.loss import VALoss, SoftFocalLossForSequence
 from src.video.training.dynamic_models.multi_task.metrics import np_concordance_correlation_coefficient
 from src.video.training.dynamic_models.multi_task.training_utils import train_epoch
+from utils.configuration_loading import load_config_file
 
 # infer the path to the project
 path_to_the_project = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir,
+    os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir,
                  os.path.pardir, os.path.pardir, os.path.pardir)) + os.path.sep
 # dynamic appending of the path to the project to the sys.path (6 folding up)
 sys.path.append(path_to_the_project)
@@ -142,14 +144,12 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     wandb.config.update({'best_model_save_path': wandb.run.dir}, allow_val_change=True)
     # create model
     if config.model_type == "UniModalTemporalModel":
-        model = UniModalTemporalModel(input_shape=config.input_shape, num_classes=config.num_classes,
+        model = UniModalTemporalModel(input_shape=(config.window_size, config.num_features), num_classes=config.num_classes,
                                       num_regression_neurons=config.num_regression_neurons)
     else:
         raise ValueError(f"Unknown model type: {config.model_type}")
     # send model to device
     model.to(device)
-    # print model summary
-    print(summary(model, input_size=config.input_shape))
     # select optimizer
     optimizers = {'Adam': torch.optim.Adam,
                   'SGD': torch.optim.SGD,
@@ -254,10 +254,32 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     torch.cuda.empty_cache()
 
 
-def main():
-    pass
+
+def main(path_to_config, **params):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # parse config file
+    config = load_config_file(path_to_config)
+    # update config with passed params
+    config.update(params)
+    config['path_to_fps_file'] = os.path.join(path_to_the_project, config['path_to_fps_file'])
+    # get data loaders
+    train_loader, dev_loader, class_weights = get_train_dev_dataloaders(config, get_class_weights=True)
+    # train model
+    train_model(train_loader, dev_loader, device, class_weights, config)
+
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        prog='ABAW dynamic uni-modal model training',
+        epilog='Parameters: path_to_config_file: str')
+    # short name -p, full name --path_to_config_file
+    parser.add_argument('--path_to_config_file', '-p', type=str, help='Path to the config file', required=True)
+    parser.add_argument('--window_size', '-w', type=int, help='Window size in frames (FPS=5)', required=True)
+    args = parser.parse_args()
+    # run main script with passed args
+    main(args.path_to_config_file, window_size=args.window_size, stride=args.window_size//2)
+    # clear RAM
+    gc.collect()
+    torch.cuda.empty_cache()
 
