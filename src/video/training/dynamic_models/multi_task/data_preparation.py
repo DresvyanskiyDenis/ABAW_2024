@@ -1,7 +1,7 @@
 import glob
 import os
 import pickle
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional
 
 import cv2
 import numpy as np
@@ -206,7 +206,7 @@ def separate_data_into_video_sequences(data: pd.DataFrame, video_to_fps:Dict[str
     # create video_name column
     data["video_name"] = data["path"].apply(lambda x: x.split("/")[-2])
     # get unique video names
-    video_names = data["video_name"].unique().values
+    video_names = data["video_name"].unique()
     # create dictionary with video sequences
     result = {}
     for video_name in video_names:
@@ -240,8 +240,8 @@ def construct_data_loaders(train_videos:Dict[str, pd.DataFrame], dev_videos:Dict
         Data loaders for train and dev data
     """
     # assign columns that will represent features and labels
-    labels_columns = None # TODO: define it
-    feature_columns = None # TODO: define it
+    labels_columns = [f'category_{i}' for i in range(config['num_classes'])] + ['arousal', 'valence']
+    feature_columns = [f'embedding_{i}' for i in range(256)]
     # create data loaders
     train_loader = TemporalEmbeddingsLoader(embeddings_with_labels=train_videos, window_size=config['window_size'],
                                             stride=config['stride'], consider_timestamps=False,
@@ -258,7 +258,8 @@ def construct_data_loaders(train_videos:Dict[str, pd.DataFrame], dev_videos:Dict
     return train_loader, dev_loader
 
 
-def get_train_dev_dataloaders(config:dict)->Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
+def get_train_dev_dataloaders(config:dict, get_class_weights:Optional[bool]=False)\
+        ->Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """ General function that loads and prepares the data and corresponding dataloaders for the model training.
 
 
@@ -285,14 +286,40 @@ def get_train_dev_dataloaders(config:dict)->Tuple[torch.utils.data.DataLoader, t
     # load fps file
     with open(config['path_to_fps_file'], 'rb') as f:
         video_to_fps = pickle.load(f)
+        video_to_fps = {''.join(key.split('.')[:-1]): value for key, value in video_to_fps.items()}
     # separate data into video sequences
     train_video_sequences = separate_data_into_video_sequences(train, video_to_fps, config['common_fps'])
     dev_video_sequences = separate_data_into_video_sequences(dev, video_to_fps, config['common_fps'])
     # construct data loaders
     train_loader, dev_loader = construct_data_loaders(train_video_sequences, dev_video_sequences, config)
+    if get_class_weights:
+        labels_columns = [f"category_{i}" for i in range(8)] # TODO: check it
+        class_weights = __calculate_class_weights(train, labels_columns)
+        return train_loader, dev_loader, class_weights
     return train_loader, dev_loader
 
 
+
+def __calculate_class_weights(df, labels_columns)->torch.Tensor:
+    """ Calculates the class weights for the provided dataframe.
+
+    :param df: pd.DataFrame
+        The dataframe with all training labels
+    :param labels_columns: List[str]
+        The list with the names of the columns that represent the labels
+    :return: torch.Tensor
+        The array with class weights.
+    """
+    num_classes = len(labels_columns)
+    labels = df[labels_columns]
+    labels = labels.dropna()
+    class_weights = labels.sum(axis=0)
+    print(class_weights)
+    class_weights = 1. / (class_weights / class_weights.sum())
+    # normalize class weights
+    class_weights = class_weights / class_weights.sum()
+    class_weights = torch.tensor(class_weights.values, dtype=torch.float32)
+    return class_weights
 
 
 def main():
@@ -309,15 +336,19 @@ def main():
         "path_to_data": "/nfs/scratch/ddresvya/Data/preprocessed/faces/",
         "train_embeddings": "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/EfficientNet_b4/b4_facial_features_train.csv",
         "dev_embeddings": "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/EfficientNet_b4/b4_facial_features_dev.csv",
-        "path_to_fps_file": "src/video/training/dynamic_models/fps.pkl",
+        "path_to_fps_file": "/nfs/home/ddresvya/scripts/ABAW_2023_SIU/src/video/training/dynamic_models/fps.pkl",
         "common_fps":5,
         "window_size": 10,
         "stride": 5,
         "batch_size": 64,
-        "num_workers": 4
+        "num_workers": 4,
+        "num_classes":8,
     }
     # check the general function
-    train_loader, dev_loader = get_train_dev_dataloaders(config)
+    train_loader, dev_loader, class_weights = get_train_dev_dataloaders(config, get_class_weights=True)
+    for x, y in train_loader:
+        print(x.shape, y.shape)
+
 
 
 
