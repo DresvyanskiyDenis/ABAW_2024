@@ -6,6 +6,8 @@ import numpy as np
 import os
 import sys
 
+from src.video.preprocessing.labels_preprocessing import load_train_dev_AffWild2_labels_with_frame_paths
+
 path_to_project = os.path.abspath(
     os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir)) + os.path.sep
 sys.path.append(path_to_project)
@@ -22,6 +24,59 @@ from pytorch_utils.models.input_preprocessing import resize_image_saving_aspect_
     ViT_image_preprocessor
 from src.video.training.static_models.multi_task.data_preparation import load_labels_with_frame_paths
 import torchvision.transforms as T
+
+def load_labels_with_frame_paths(config) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    if config['challenge'] == "VA":
+        train_labels, dev_labels = load_train_dev_AffWild2_labels_with_frame_paths(
+            paths_to_labels=(config['VA_train_labels_path'], config['VA_dev_labels_path']),
+            path_to_metadata=config['metapath_file'],
+            challenge=config['challenge'])
+    elif config['challenge'] == "Exp":
+        train_labels, dev_labels = load_train_dev_AffWild2_labels_with_frame_paths(
+            paths_to_labels=(config['Exp_train_labels_path'], config['Exp_dev_labels_path']),
+            path_to_metadata=config['metafile_path'],
+            challenge=config['challenge'])
+    else:
+        raise ValueError("The challenge name should be either 'VA' or 'Exp'.")
+
+    # concat all train labels and dev labels
+    train_labels = pd.concat([value for key, value in train_labels.items()], axis=0)
+    dev_labels = pd.concat([value for key, value in dev_labels.items()], axis=0)
+
+    if config['challenge'] == "VA":
+        # keep only the frames with arousal and valence -1<=x<=1
+        train_labels = train_labels[(train_labels["valence"] >= -1) & (train_labels["valence"] <= 1) &
+                                    (train_labels["arousal"] >= -1) & (train_labels["arousal"] <= 1)]
+        dev_labels = dev_labels[(dev_labels["valence"] >= -1) & (dev_labels["valence"] <= 1) &
+                                (dev_labels["arousal"] >= -1) & (dev_labels["arousal"] <= 1)]
+
+    # delete -1 categories
+    if config['challenge'] == "Exp":
+        train_labels = train_labels[train_labels["category"] != -1]
+        dev_labels = dev_labels[dev_labels["category"] != -1]
+
+    # change columns names for further work
+    train_labels.rename(columns={"path_to_frame": "path"}, inplace=True)
+    dev_labels.rename(columns={"path_to_frame": "path"}, inplace=True)
+
+
+    # convert categories to one-hot vectors if it is Exp challenge
+    if config['challenge'] == "Exp":
+        # create one-hot vectors
+        train_one_hot = pd.get_dummies(train_labels["category"])
+        dev_one_hot = pd.get_dummies(dev_labels["category"])
+        # concat one-hot vectors to the labels
+        train_labels = pd.concat([train_labels, train_one_hot], axis=1)
+        dev_labels = pd.concat([dev_labels, dev_one_hot], axis=1)
+        # delete category column
+        train_labels.drop(columns=["category"], inplace=True)
+        dev_labels.drop(columns=["category"], inplace=True)
+
+
+    return train_labels, dev_labels
+
+
+
 
 
 def initialize_model_and_preprocessing_fucntions(config)->Tuple[torch.nn.Module, list]:
