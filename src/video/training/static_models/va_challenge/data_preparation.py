@@ -49,9 +49,6 @@ def load_labels_with_frame_paths(challenge: str) -> Tuple[pd.DataFrame, pd.DataF
     train_labels = train_labels.iloc[::5, :]
     dev_labels = dev_labels.iloc[::3, :]
 
-    # TODO: delete it
-    train_labels = train_labels.iloc[:5000, :]
-
     if challenge== "VA":
         # keep only the frames with arousal and valence -1<=x<=1
         train_labels = train_labels[(train_labels["valence"] >= -1) & (train_labels["valence"] <= 1) &
