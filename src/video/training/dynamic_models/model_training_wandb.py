@@ -3,9 +3,9 @@ import os
 
 from src.video.training.dynamic_models.dynamic_models import UniModalTemporalModel
 from src.video.training.dynamic_models.multi_task.data_preparation import get_train_dev_dataloaders
-from src.video.training.dynamic_models.multi_task.loss import VALoss, SoftFocalLossForSequence
-from src.video.training.dynamic_models.multi_task.metrics import np_concordance_correlation_coefficient
-from src.video.training.dynamic_models.multi_task.training_utils import train_epoch
+from src.video.training.dynamic_models.loss import VALoss, SoftFocalLossForSequence
+from src.video.training.dynamic_models.metrics import np_concordance_correlation_coefficient
+from src.video.training.dynamic_models.training_utils import train_epoch
 from utils.configuration_loading import load_config_file
 
 # infer the path to the project
@@ -19,20 +19,17 @@ sys.path.append(path_to_the_project.replace("ABAW_2023_SIU", "datatools"))
 sys.path.append(path_to_the_project.replace("ABAW_2023_SIU", "simple-HRNet-master"))
 
 import argparse
-from torchinfo import summary
 import gc
-from functools import partial
-from typing import Tuple, List, Dict, Optional, Union
+from typing import Dict
 
 import wandb
 import numpy as np
 import torch
-from sklearn.metrics import recall_score, precision_score, f1_score, accuracy_score, mean_absolute_error, \
-    mean_squared_error
+from sklearn.metrics import recall_score, precision_score, f1_score, accuracy_score, mean_absolute_error
 
 from pytorch_utils.lr_schedullers import WarmUpScheduler
-from pytorch_utils.training_utils.callbacks import TorchEarlyStopping, GradualLayersUnfreezer, gradually_decrease_lr
-from pytorch_utils.training_utils.losses import SoftFocalLoss, RMSELoss
+from pytorch_utils.training_utils.callbacks import TorchEarlyStopping
+
 
 def evaluate_model(model:torch.nn.Module, dev_generator:torch.utils.data.DataLoader, device:torch.device) -> Dict[str, float]:
     classification_metrics = {

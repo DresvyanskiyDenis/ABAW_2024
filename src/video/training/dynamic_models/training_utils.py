@@ -49,8 +49,8 @@ def train_step(model: torch.nn.Module, criterions: List[torch.nn.Module],
         ground_truths = [torch.masked_select(gt, mask) for gt, mask in zip(ground_truths, masks)]
         outputs = [output[mask] for output, mask in zip(outputs, masks)]
         # reshape ground truth and outputs to the original shape (keep second dimension)
-        ground_truths = [gt.view(-1, shape[1]) for gt, shape in zip(ground_truths, shapes)]
-        outputs = [output.view(-1, shape[1]) for output, shape in zip(outputs, shapes)]
+        ground_truths = [gt.view(-1, shape[1], shape[2]) for gt, shape in zip(ground_truths, shapes)]
+        outputs = [output.view(-1, shape[1], shape[2]) for output, shape in zip(outputs, shapes)]
     losses = []
     for criterion, output, gt in zip(criterions, outputs, ground_truths):
         # calculate loss. If gt is empty (there are bo labels), we should not calculate loss and just append 0.0

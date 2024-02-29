@@ -106,42 +106,40 @@ def load_labels(config:dict)->Tuple[pd.DataFrame, pd.DataFrame]:
     :return: Tuple[pd.DataFrame, pd.DataFrame]
         Dataframes with train and dev labels
     """
-    train_labels_exp, dev_labels_exp = load_train_dev_AffWild2_labels_with_frame_paths(
-        paths_to_labels=(config['exp_train_labels_path'], config['exp_dev_labels_path']),
-        path_to_metadata=config['metafile_path'],
-        challenge="Exp")  # pattern: Dict[filename: frames_with_labels] -> Dict[str, pd.DataFrame]
+    if config['challenge'] == "Exp":
+        train_labels, dev_labels = load_train_dev_AffWild2_labels_with_frame_paths(
+            paths_to_labels=(config['exp_train_labels_path'], config['exp_dev_labels_path']),
+            path_to_metadata=config['metafile_path'],
+            challenge="Exp")  # pattern: Dict[filename: frames_with_labels] -> Dict[str, pd.DataFrame]
+    elif config['challenge'] == "VA":
+        train_labels, dev_labels = load_train_dev_AffWild2_labels_with_frame_paths(
+            paths_to_labels=(config['va_train_labels_path'], config['va_dev_labels_path']),
+            path_to_metadata=config['metafile_path'],
+            challenge="VA")
+    else:
+        raise ValueError("The challenge should be either 'Exp' or 'VA'.")
 
-    train_labels_va, dev_labels_va = load_train_dev_AffWild2_labels_with_frame_paths(
-        paths_to_labels=(config['va_train_labels_path'], config['va_dev_labels_path']),
-        path_to_metadata=config['metafile_path'],
-        challenge="VA")
-    # concatenate train labels from both challenges deleting duplicates
-    train_files = list(train_labels_exp.keys()) + list(train_labels_va.keys())
-    train_files = set(train_files)
-    # concatenate dev labels from both challenges deleting duplicates
-    dev_files = list(dev_labels_exp.keys()) + list(dev_labels_va.keys())
-    dev_files = set(dev_files)  # 144 files
-    # exclude files that are in the dev but also in the train
-    train_files = train_files - dev_files  # 353 files
-    # merge labels
-    train_labels = {}
-    for file in train_files:
-        train_labels[file] = merge_exp_with_va_labels(train_labels_exp.get(file), train_labels_va.get(file))
-    dev_labels = {}
-    for file in dev_files:
-        dev_labels[file] = merge_exp_with_va_labels(dev_labels_exp.get(file), dev_labels_va.get(file))
     # concat all train labels and dev labels
     train_labels = pd.concat([value for key, value in train_labels.items()], axis=0)
     dev_labels = pd.concat([value for key, value in dev_labels.items()], axis=0)
-    # for Exp challenge, substitute -1 with np.NaN
-    train_labels["category"] = train_labels["category"].replace(-1, np.NaN)
-    dev_labels["category"] = dev_labels["category"].replace(-1, np.NaN)
+    # for Exp challenge, delete all -1 values in the "category" column
+    if config['challenge'] == "Exp":
+        train_labels = train_labels[train_labels["category"] != -1]
+        dev_labels = dev_labels[dev_labels["category"] != -1]
+    # for VA challenge, delete all values that are not in the range -1<=x<=1
+    if config['challenge']== "VA":
+        # keep only the frames with arousal and valence -1<=x<=1
+        train_labels = train_labels[(train_labels["valence"] >= -1) & (train_labels["valence"] <= 1) &
+                                    (train_labels["arousal"] >= -1) & (train_labels["arousal"] <= 1)]
+        dev_labels = dev_labels[(dev_labels["valence"] >= -1) & (dev_labels["valence"] <= 1) &
+                                (dev_labels["arousal"] >= -1) & (dev_labels["arousal"] <= 1)]
     # change columns names for further work
     train_labels.rename(columns={"path_to_frame": "path"}, inplace=True)
     dev_labels.rename(columns={"path_to_frame": "path"}, inplace=True)
     # convert categories to one-hot vectors
-    train_labels = convert_categories_to_on_hot(train_labels)
-    dev_labels = convert_categories_to_on_hot(dev_labels)
+    if config['challenge'] == "Exp":
+        train_labels = convert_categories_to_on_hot(train_labels)
+        dev_labels = convert_categories_to_on_hot(dev_labels)
     # change absolute paths to relative one up to the second directory + change slashes to the ones that current system uses
     train_labels["path"] = train_labels["path"].apply(lambda x: str(os.path.sep).join(x.split("/")[-2:]))
     dev_labels["path"] = dev_labels["path"].apply(lambda x: str(os.path.sep).join(x.split("/")[-2:]))
@@ -293,7 +291,9 @@ def get_train_dev_dataloaders(config:dict, get_class_weights:Optional[bool]=Fals
     # construct data loaders
     train_loader, dev_loader = construct_data_loaders(train_video_sequences, dev_video_sequences, config)
     if get_class_weights:
-        labels_columns = [f"category_{i}" for i in range(8)] # TODO: check it
+        if config['challenge'] == "VA":
+            raise ValueError("The class weights are not implemented for the VA challenge.")
+        labels_columns = [f"category_{i}" for i in range(8)]
         class_weights = __calculate_class_weights(train, labels_columns)
         return train_loader, dev_loader, class_weights
     return train_loader, dev_loader
