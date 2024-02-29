@@ -1,25 +1,25 @@
 from typing import Dict
 
 # labels and data paths
-VA_TRAIN_LABELS_PATH:str = "/media/external_hdd_2/Datasets/AffWild2/5th_ABAW_Annotations/VA_Estimation_Challenge/Train_Set/"
-VA_DEV_LABELS_PATH:str = "/media/external_hdd_2/Datasets/AffWild2/5th_ABAW_Annotations/VA_Estimation_Challenge/Validation_Set/"
-Exp_TRAIN_LABELS_PATH:str = "/media/external_hdd_2/Datasets/AffWild2/5th_ABAW_Annotations/EXPR_Classification_Challenge/Train_Set/"
-Exp_DEV_LABELS_PATH:str = "/media/external_hdd_2/Datasets/AffWild2/5th_ABAW_Annotations/EXPR_Classification_Challenge/Validation_Set/"
+VA_TRAIN_LABELS_PATH:str = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/"
+VA_DEV_LABELS_PATH:str = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/"
+Exp_TRAIN_LABELS_PATH:str = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/"
+Exp_DEV_LABELS_PATH:str = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/"
 
-METAFILE_PATH:str = "/media/external_hdd_2/Datasets/AffWild2/preprocessed/poses/metadata.csv"
+METAFILE_PATH:str = "/nfs/scratch/ddresvya/Data/preprocessed/pose/metadata.csv"
 
 # model architecture params
-NUM_CLASSES:int = 7
+NUM_CLASSES:int = 8
 MODEL_INPUT_SIZE:Dict[str, int] = {
     "Modified_HRNet":256,
 }
-MODEL_WEIGHTS_PATH = "FILL_IN"
+
 
 # training metaparams
 NUM_EPOCHS:int = 100
 OPTIMIZER:str = "AdamW"
 AUGMENT_PROB:float = 0.05
-EARLY_STOPPING_PATIENCE:int = 35
+EARLY_STOPPING_PATIENCE:int = 15
 WEIGHT_DECAY:float = 0.0001
 
 # scheduller

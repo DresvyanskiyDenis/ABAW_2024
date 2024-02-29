@@ -1,6 +1,10 @@
 import sys
-sys.path.extend(["/work/home/dsu/datatools/"])
-sys.path.extend(["/work/home/dsu/ABAW_2023_SIU/"])
+import os
+project_path = os.path.join(os.path.dirname(__file__), '..', '..','..','..','..','..')
+project_path = os.path.abspath(project_path) + os.path.sep
+sys.path.append(project_path)
+sys.path.append(project_path.replace("ABAW_2023_SIU", "datatools"))
+sys.path.append(project_path.replace("ABAW_2023_SIU", "simple-HRNet-master"))
 
 import argparse
 from torchinfo import summary
@@ -233,7 +237,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
         print(f"{key}: {value}")
     print("____________________________________________________")
     # initialization of Weights and Biases
-    wandb.init(project="ABAW_2023_Exp_static", config=metaparams)
+    wandb.init(project="ABAW_2023_Exp_static", config=metaparams, entity='denisdresvyanskiy')
     config = wandb.config
     wandb.config.update({'BEST_MODEL_SAVE_PATH':wandb.run.dir}, allow_val_change=True)
 
@@ -241,17 +245,16 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     if config.MODEL_TYPE == "Modified_HRNet":
         model = Modified_HRNet(pretrained=True,
-                               path_to_weights="/work/home/dsu/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
+                               path_to_weights="/nfs/home/ddresvya/scripts/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
                                embeddings_layer_neurons=256, num_classes=config.NUM_CLASSES,
-                               num_regression_neurons=config.NUM_REGRESSION_NEURONS)
+                               num_regression_neurons=None,
+                               consider_only_upper_body=True)
     else:
         raise ValueError("Unknown model type: %s" % config.MODEL_TYPE)
-    # load model weights
-    model.load_state_dict(torch.load(config.MODEL_WEIGHTS_PATH))
     # send model to GPU or CPU
     model = model.to(device)
     # print model architecture
-    summary(model, (2, 3, config.MODEL_INPUT_SIZE[config.MODEL_TYPE], config.MODEL_INPUT_SIZE[config.MODEL_TYPE]))
+    summary(model, (2, 3, training_config.MODEL_INPUT_SIZE[config.MODEL_TYPE], training_config.MODEL_INPUT_SIZE[config.MODEL_TYPE]))
 
     # define all model layers (params), which will be used by optimizer
     if config.MODEL_TYPE == "Modified_HRNet":

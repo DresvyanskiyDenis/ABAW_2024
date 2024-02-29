@@ -11,12 +11,15 @@ from pytorch_utils.data_loaders.pytorch_augmentations import pad_image_random_fa
     collor_jitter_image_random, gaussian_blur_image_random, random_perspective_image, random_rotation_image, \
     random_crop_image, random_posterize_image, random_adjust_sharpness_image, random_equalize_image, \
     random_horizontal_flip_image, random_vertical_flip_image
+from pytorch_utils.data_preprocessing import convert_image_to_float_and_scale
 from pytorch_utils.models.input_preprocessing import resize_image_saving_aspect_ratio
+import torchvision.transforms as T
 
 import training_config
+from src.video.preprocessing.labels_preprocessing import load_train_dev_AffWild2_labels_with_frame_paths
 
 
-def load_labels_with_frame_paths(challenge:str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def load_labels_with_frame_paths(challenge: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """ Loads the labels with the paths to the frames.
 
     :param challenge: str
@@ -26,11 +29,15 @@ def load_labels_with_frame_paths(challenge:str) -> Tuple[pd.DataFrame, pd.DataFr
         The train and val sets.
     """
     if challenge == "VA":
-        train_labels = pd.read_csv(training_config.VA_TRAIN_LABELS_PATH)
-        dev_labels = pd.read_csv(training_config.VA_DEV_LABELS_PATH)
+        train_labels, dev_labels = load_train_dev_AffWild2_labels_with_frame_paths(
+            paths_to_labels=(training_config.VA_TRAIN_LABELS_PATH, training_config.VA_DEV_LABELS_PATH),
+            path_to_metadata=training_config.METAFILE_PATH,
+            challenge=challenge)
     elif challenge == "Exp":
-        train_labels = pd.read_csv(training_config.Exp_TRAIN_LABELS_PATH)
-        dev_labels = pd.read_csv(training_config.Exp_DEV_LABELS_PATH)
+        train_labels, dev_labels = load_train_dev_AffWild2_labels_with_frame_paths(
+            paths_to_labels=(training_config.Exp_TRAIN_LABELS_PATH, training_config.Exp_DEV_LABELS_PATH),
+            path_to_metadata=training_config.METAFILE_PATH,
+            challenge=challenge)
     else:
         raise ValueError("The challenge name should be either 'VA' or 'Exp'.")
 
@@ -40,7 +47,15 @@ def load_labels_with_frame_paths(challenge:str) -> Tuple[pd.DataFrame, pd.DataFr
 
     # take every 5th frame
     train_labels = train_labels.iloc[::5, :]
-    dev_labels = dev_labels.iloc[::5, :]
+    dev_labels = dev_labels.iloc[::3, :]
+
+
+    if challenge== "VA":
+        # keep only the frames with arousal and valence -1<=x<=1
+        train_labels = train_labels[(train_labels["valence"] >= -1) & (train_labels["valence"] <= 1) &
+                                    (train_labels["arousal"] >= -1) & (train_labels["arousal"] <= 1)]
+        dev_labels = dev_labels[(dev_labels["valence"] >= -1) & (dev_labels["valence"] <= 1) &
+                                (dev_labels["arousal"] >= -1) & (dev_labels["arousal"] <= 1)]
 
     # delete -1 categories
     if challenge == "Exp":
@@ -48,8 +63,12 @@ def load_labels_with_frame_paths(challenge:str) -> Tuple[pd.DataFrame, pd.DataFr
         dev_labels = dev_labels[dev_labels["category"] != -1]
 
     # change columns names for further work
-    train_labels.rename(columns={"path_to_frame":"path"}, inplace=True)
-    dev_labels.rename(columns={"path_to_frame":"path"}, inplace=True)
+    train_labels.rename(columns={"path_to_frame": "path"}, inplace=True)
+    dev_labels.rename(columns={"path_to_frame": "path"}, inplace=True)
+
+    # drop columns frame_num, timestamp, video_name as we do not need them in static model
+    train_labels.drop(columns=["frame_num", "timestamp", "video_name"], inplace=True)
+    dev_labels.drop(columns=["frame_num", "timestamp", "video_name"], inplace=True)
 
     # convert categories to one-hot vectors if it is Exp challenge
     if challenge == "Exp":
