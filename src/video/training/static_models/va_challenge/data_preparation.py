@@ -82,10 +82,10 @@ def load_labels_with_frame_paths(challenge: str) -> Tuple[pd.DataFrame, pd.DataF
         dev_labels.drop(columns=["category"], inplace=True)
 
     # change paths
-    train_labels["path"] = train_labels["path"].apply(lambda x: x.replace("/nfs/scratch/ddresvya/Data/preprocessed/",
-                                                                          "/home/ddresvya/Data/preprocessed/"))
-    dev_labels["path"] = dev_labels["path"].apply(lambda x: x.replace("/nfs/scratch/ddresvya/Data/preprocessed/",
-                                                                        "/home/ddresvya/Data/preprocessed/"))
+    #train_labels["path"] = train_labels["path"].apply(lambda x: x.replace("/nfs/scratch/ddresvya/Data/preprocessed/",
+    #                                                                      "/home/ddresvya/Data/preprocessed/"))
+    #dev_labels["path"] = dev_labels["path"].apply(lambda x: x.replace("/nfs/scratch/ddresvya/Data/preprocessed/",
+    #                                                                    "/home/ddresvya/Data/preprocessed/"))
 
     return train_labels, dev_labels
 
