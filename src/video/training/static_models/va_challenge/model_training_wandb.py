@@ -1,5 +1,7 @@
 import sys
 import os
+
+
 project_path = os.path.join(os.path.dirname(__file__), '..', '..','..','..','..')
 project_path = os.path.abspath(project_path) + os.path.sep
 sys.path.append(project_path)
@@ -14,6 +16,7 @@ from typing import Tuple, List, Dict, Optional
 
 import numpy as np
 import torch
+from torchmetrics import LogCoshError, RelativeSquaredError
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 from sklearn.metrics import mean_squared_error, \
@@ -208,7 +211,7 @@ def train_epoch(model: torch.nn.Module, train_generator: torch.utils.data.DataLo
 
 
 def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: torch.utils.data.DataLoader,
-                device: str, model_weights_path: str,
+                device: str, model_weights_path: str, loss_function:str,
                 MODEL_TYPE: str, BATCH_SIZE: int, ACCUMULATE_GRADIENTS: int, GRADUAL_UNFREEZING: Optional[bool] = False,
                 DISCRIMINATIVE_LEARNING: Optional[bool] = False,
                 loss_multiplication_factor: Optional[float] = None) -> None:
@@ -223,6 +226,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
         "architecture": MODEL_TYPE,
         "MODEL_TYPE": MODEL_TYPE,
         "dataset": "AffWild2_VA",
+        "loss_function" : loss_function,
         "BEST_MODEL_SAVE_PATH": training_config.BEST_MODEL_SAVE_PATH,
         "NUM_WORKERS": training_config.NUM_WORKERS,
         # model architecture
@@ -350,7 +354,12 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     optimizer = optimizers[config.OPTIMIZER](model_parameters, lr=config.LR_MAX_CYCLIC,
                                              weight_decay=config.WEIGHT_DECAY)
     # Loss functions
-    criterions = [RMSELoss(), RMSELoss()]
+    if config.loss_function == 'RMSE':
+        criterions = [RMSELoss().to(device), RMSELoss().to(device)]
+    elif config.loss_function == 'LogCosh':
+        criterions = [LogCoshError().to(device), LogCoshError().to(device)]
+    elif config.loss_function == 'RSE':
+        criterions = [RelativeSquaredError().to(device), RelativeSquaredError().to(device)]
     # create LR scheduler
     lr_schedullers = {
         'Cyclic': torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.ANNEALING_PERIOD,
@@ -431,7 +440,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     torch.cuda.empty_cache()
 
 
-def main(challenge: str, device: str, model_type, model_weights_path,
+def main(challenge: str, device: str, model_type, model_weights_path, loss_function:str,
          batch_size, accumulate_gradients, gradual_unfreezing, discriminative_learning, loss_multiplication_factor):
     print("Start of the script....")
     # get data loaders
@@ -445,7 +454,7 @@ def main(challenge: str, device: str, model_type, model_weights_path,
                 MODEL_TYPE=model_type, model_weights_path=model_weights_path,
                 BATCH_SIZE=batch_size, ACCUMULATE_GRADIENTS=accumulate_gradients,
                 GRADUAL_UNFREEZING=gradual_unfreezing, DISCRIMINATIVE_LEARNING=discriminative_learning,
-                loss_multiplication_factor=loss_multiplication_factor,
+                loss_multiplication_factor=loss_multiplication_factor, loss_function=loss_function,
                 device=device)
 
 
@@ -457,6 +466,7 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, required=True)
     parser.add_argument('--model_type', type=str, required=True)
     parser.add_argument('--model_weights_path', type=str, required=True)
+    parser.add_argument('--loss', type=str, required=True)
     parser.add_argument('--batch_size', type=int, required=True)
     parser.add_argument('--accumulate_gradients', type=int, required=True)
     parser.add_argument('--gradual_unfreezing', type=int, required=True)
@@ -492,6 +502,7 @@ if __name__ == "__main__":
     main(challenge=args.challenge,
          device=device,
          model_type=model_type, model_weights_path=model_weights_path,
+         loss_function=args.loss,
          batch_size=batch_size, accumulate_gradients=accumulate_gradients,
          gradual_unfreezing=gradual_unfreezing,
          discriminative_learning=discriminative_learning,
