@@ -1,5 +1,9 @@
 import os
 import sys
+from typing import Tuple, Optional, Dict
+
+import pandas as pd
+
 # infer the path to the project
 path_to_the_project = os.path.abspath(
     os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir,
@@ -19,17 +23,50 @@ import torch
 from pytorch_utils.lr_schedullers import WarmUpScheduler
 from pytorch_utils.training_utils.callbacks import TorchEarlyStopping
 
-from src.video.training.dynamic_models.dynamic_models import UniModalTemporalModel
+
 from src.video.training.dynamic_models.loss import VALoss, SoftFocalLossForSequence
 from src.video.training.dynamic_models.training_utils import train_epoch
 from utils.configuration_loading import load_config_file
-from src.video.training.dynamic_models.data_preparation import get_train_dev_dataloaders
+from src.video.training.dynamic_models.data_preparation import get_train_dev_dataloaders, \
+    get_dev_resampled_and_full_fps_dicts, load_fps_file
 from src.video.training.dynamic_models.evaluation_development import evaluate_on_dev_set_full_fps
 
+from src.video.training.dynamic_models.dynamic_models import UniModalTemporalModel_v1, UniModalTemporalModel_v2, \
+    UniModalTemporalModel_v3, UniModalTemporalModel_v4
 
 
 
-def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: torch.utils.data.DataLoader,
+
+def initialize_model(model_type: str, input_shape: Tuple[int, int],
+                     num_classes: Optional[int]=None, num_regression_neurons:Optional[int]=None)-> torch.nn.Module:
+    """ Inializes the model depending on the provided model type.
+
+    :param model_type: str
+        THe type of the dynamic model. Currently, v1, v2, v3, v4 are supported.
+    :param input_shape: Tuple[int, int]
+        The shape of the input tensor. First element is the number of frames, the second is the number of features.
+    :param num_classes: Optional[int]
+        The number of classes. Required for classification models.
+    :param num_regression_neurons: Optional[int]
+        The number of neurons in the output layer. Required for regression models.
+    :return: torch.nn.Module
+        The initialized model.
+    """
+    if model_type == "dynamic_v1":
+        model = UniModalTemporalModel_v1(input_shape=input_shape, num_classes=num_classes, num_regression_neurons=num_regression_neurons)
+    elif model_type == "dynamic_v2":
+        model = UniModalTemporalModel_v2(input_shape=input_shape, num_classes=num_classes, num_regression_neurons=num_regression_neurons)
+    elif model_type == "dynamic_v3":
+        model = UniModalTemporalModel_v3(input_shape=input_shape, num_classes=num_classes, num_regression_neurons=num_regression_neurons)
+    elif model_type == "dynamic_v4":
+        model = UniModalTemporalModel_v4(input_shape=input_shape, num_classes=num_classes, num_regression_neurons=num_regression_neurons)
+    else:
+        raise ValueError(f"Unknown model type: {model_type}")
+    return model
+
+
+def train_model(train_generator: torch.utils.data.DataLoader,
+                dev_data_resampled:Dict[str, pd.DataFrame], dev_data_full_fps:Dict[str, pd.DataFrame],
                 device: torch.device, class_weights: torch.Tensor, training_config:dict):
     training_config['device'] = device
     print("____________________________________________________")
@@ -42,11 +79,8 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     config = wandb.config
     wandb.config.update({'best_model_save_path': wandb.run.dir}, allow_val_change=True)
     # create model
-    if config.model_type == "UniModalTemporalModel":
-        model = UniModalTemporalModel(input_shape=(config.window_size, config.num_features), num_classes=config.num_classes,
-                                      num_regression_neurons=config.num_regression_neurons)
-    else:
-        raise ValueError(f"Unknown model type: {config.model_type}")
+    model = initialize_model(training_config['model_type'], input_shape=(training_config['window_size'], 2048),
+                                num_classes=training_config['num_classes'], num_regression_neurons=training_config['num_regression_neurons'])
     # send model to device
     model.to(device)
     # select optimizer
@@ -104,7 +138,11 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
         # validate the model
         model.eval()
         print("Evaluation of the model on dev set.")
-        val_metrics = evaluate_on_dev_set_full_fps() # TODO: evaluation
+        val_metrics = evaluate_on_dev_set_full_fps(dev_set_full_fps=dev_data_full_fps, dev_set_resampled=dev_data_resampled,
+                                 video_to_fps=config.video_to_fps_dict, model=model, labels_type=config.challenge,
+                                 feature_columns=config.feature_columns,
+                                 labels_columns=config.labels_columns,
+                                 batch_size=config.batch_size, resampled_fps=config.common_fps)
 
         # update best val metrics got on validation set and log them using wandb # TODO: write separate function on updating wandb metrics
         if config.challenge == 'Exp':
@@ -161,18 +199,29 @@ def main(path_to_config, **params):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # parse config file
     config = load_config_file(path_to_config)
+    # load additional parameters to add to config
+    video_to_fps = load_fps_file(config['path_to_fps_file'])
+    feature_columns = [f'embedding_{i}' for i in range(256)]
+    if config['challenge'] == 'Exp':
+        labels_columns = [f'category_{i}' for i in range(config['num_classes'])]
+    else:
+        labels_columns = ['arousal', 'valence']
     # update config with passed params
     config.update(params)
     config['path_to_fps_file'] = os.path.join(path_to_the_project, config['path_to_fps_file'])
+    config['video_to_fps_dict'] = video_to_fps
+    config['feature_columns'] = feature_columns
+    config['labels_columns'] = labels_columns
     # get data loaders
     if config['challenge'] == 'Exp':
         train_loader, dev_loader, class_weights = get_train_dev_dataloaders(config, get_class_weights=True)
     else:
         train_loader, dev_loader = get_train_dev_dataloaders(config, get_class_weights=False)
         class_weights = None
+    # get resampled and full fps dev data
+    dev_resampled, dev_full_fps = get_dev_resampled_and_full_fps_dicts(config)
     # train model
-    train_model(train_loader, dev_loader, device, class_weights, config)
-
+    train_model(train_loader, dev_resampled, dev_full_fps, device, class_weights, config)
 
 
 if __name__ == "__main__":

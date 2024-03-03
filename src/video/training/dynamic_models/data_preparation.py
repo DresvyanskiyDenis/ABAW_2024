@@ -238,7 +238,10 @@ def construct_data_loaders(train_videos:Dict[str, pd.DataFrame], dev_videos:Dict
         Data loaders for train and dev data
     """
     # assign columns that will represent features and labels
-    labels_columns = [f'category_{i}' for i in range(config['num_classes'])] + ['arousal', 'valence']
+    if config['challenge'] == "Exp":
+        labels_columns = [f'category_{i}' for i in range(config['num_classes'])]
+    elif config['challenge'] == "VA":
+        labels_columns = ["valence", "arousal"]
     feature_columns = [f'embedding_{i}' for i in range(256)]
     # create data loaders
     train_loader = TemporalEmbeddingsLoader(embeddings_with_labels=train_videos, window_size=config['window_size'],
@@ -297,6 +300,50 @@ def get_train_dev_dataloaders(config:dict, get_class_weights:Optional[bool]=Fals
         class_weights = __calculate_class_weights(train, labels_columns)
         return train_loader, dev_loader, class_weights
     return train_loader, dev_loader
+
+def get_dev_resampled_and_full_fps_dicts(config:dict)->Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
+    """ Loads dev data and resamples it to the common_fps. Also, loads the dev data with full fps.
+
+    :param config: dict
+        Dictionary with configuration parameters. It should contain the following keys:
+        - train_embeddings: str, path to the train embeddings file
+        - dev_embeddings: str, path to the dev embeddings file
+        - exp_train_labels_path: str, path to the expression part of the train labels
+        - exp_dev_labels_path: str, path to the expression part of the dev labels
+        - va_train_labels_path: str, path to the VA part of the train labels
+        - va_dev_labels_path: str, path to the VA part of the dev labels
+        - metafile_path: str, path to the metafile (of extracted facial frames or pose frames)
+        - path_to_data: str, path to the folder with frames
+        - window_size: int, size of the window in number of frames
+        - stride: int, stride of the window in number of frames
+        - batch_size: int, size of the batch
+        - num_workers: int, number of workers (threads) for the data loader
+        - common_fps: int, common fps for all videos
+    :return: Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]
+        Dictionaries with dev data resampled to the common_fps and with full fps.
+    """
+    # load train and dev data
+    train, dev = load_train_dev(config)
+    # load fps file
+    video_to_fps = load_fps_file(config['path_to_fps_file'])
+    # separate data into video sequences
+    dev_resampled = separate_data_into_video_sequences(dev, video_to_fps, config['common_fps'])
+    dev_full_fps = separate_data_into_video_sequences(dev, video_to_fps, 1)
+    return dev_resampled, dev_full_fps
+
+
+def load_fps_file(path_to_fps_file:str)->Dict[str, float]:
+    """ Loads the video_to_fps file from the provided path.
+
+    :param path_to_fps_file: str
+        Path to the video_to_fps file.
+    :return: Dict[str, float]
+        Dictionary with video names as keys and fps as values.
+    """
+    with open(path_to_fps_file, 'rb') as f:
+        fps_dict = pickle.load(f)
+        fps_dict = {''.join(key.split('.')[:-1]): value for key, value in fps_dict.items()}
+    return fps_dict
 
 
 

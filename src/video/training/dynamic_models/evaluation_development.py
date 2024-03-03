@@ -116,14 +116,16 @@ def evaluate_on_dev_set_full_fps(dev_set_full_fps:Dict[str, pd.DataFrame], dev_s
         # interpolate predictions to the full fps
         ground_truth_fps = video_to_fps[video_name].iloc[0]['fps']
         predictions = interpolate_to_full_fps(predictions, predictions_fps=resampled_fps, ground_truths_fps=ground_truth_fps)
+        # TODO: apply Hamilton smoothing
+
         # get ground truth
         ground_truth = dev_set_full_fps[video_name][labels_columns].values
         # check if the number of frames is the same
         assert predictions.shape[0] == ground_truth.shape[0]
         # calculate the metric
-        if labels_type == 'classification':
+        if labels_type == 'Exp':
             result[video_name] = f1_score(ground_truth, predictions, average='macro')
-        elif labels_type == 'regression':
+        elif labels_type == 'VA':
             result[video_name] = np_concordance_correlation_coefficient(ground_truth, predictions)
     # get averaged result
     result = np.mean(list(result.values()))
