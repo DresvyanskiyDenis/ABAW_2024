@@ -153,9 +153,9 @@ class UniModalTemporalModel_v3(torch.nn.Module):
 
 
 
-class UniModalTemporalModel_v3(torch.nn.Module):
+class UniModalTemporalModel_v4(torch.nn.Module):
     def __init__(self, input_shape:Tuple[int, int], num_classes:Optional[int]=None, num_regression_neurons:Optional[int]=None):
-        super(UniModalTemporalModel_v3, self).__init__()
+        super(UniModalTemporalModel_v4, self).__init__()
         self.num_timesteps, self.num_features = input_shape # (num_time_steps, num_features)
         self.num_classes = num_classes
         self.num_regression_neurons = num_regression_neurons
