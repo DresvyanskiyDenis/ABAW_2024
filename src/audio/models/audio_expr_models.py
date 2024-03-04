@@ -34,7 +34,7 @@ class ExprModelV1(Wav2Vec2PreTrainedModel):
  
             torch.nn.Conv1d(self.f_size, self.f_size, kernel_size=3),
             torch.nn.BatchNorm1d(self.f_size),
-            torch.nn.AdaptiveAvgPool1d(1),
+            torch.nn.AdaptiveAvgPool1d(4),
             torch.nn.ReLU(),
         )
  
@@ -61,7 +61,7 @@ class ExprModelV1(Wav2Vec2PreTrainedModel):
         x = x.permute(0, 2, 1)
         x = self.time_downsample(x)
  
-        x = x.squeeze()
+        x = x.permute(0, 2, 1)
         x = self.feature_downsample(x)
         return x
 
@@ -84,7 +84,7 @@ class ExprModelV2(Wav2Vec2PreTrainedModel):
 
             torch.nn.Conv1d(self.f_size, self.f_size, kernel_size=3),
             torch.nn.BatchNorm1d(self.f_size),
-            torch.nn.AdaptiveAvgPool1d(1),
+            torch.nn.AdaptiveAvgPool1d(4),
             torch.nn.ReLU(),
         )
  
@@ -112,7 +112,7 @@ class ExprModelV2(Wav2Vec2PreTrainedModel):
         x = x.permute(0, 2, 1)
         x = self.time_downsample(x)
         
-        x = x.squeeze()
+        x = x.permute(0, 2, 1)
         x = self.feature_downsample(x)
         return x
     
@@ -135,7 +135,7 @@ class ExprModelV3(Wav2Vec2PreTrainedModel):
 
             torch.nn.Conv1d(self.f_size, self.f_size, kernel_size=3),
             torch.nn.BatchNorm1d(self.f_size),
-            torch.nn.AdaptiveAvgPool1d(1),
+            torch.nn.AdaptiveAvgPool1d(4),
             torch.nn.ReLU(),
         )
  
@@ -168,7 +168,7 @@ class ExprModelV3(Wav2Vec2PreTrainedModel):
         x = x.permute(0, 2, 1)
         x = self.time_downsample(x)
         
-        x = x.squeeze()
+        x = x.permute(0, 2, 1)
         x = self.feature_downsample(x)
         return x
 

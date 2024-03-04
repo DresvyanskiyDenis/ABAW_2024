@@ -16,7 +16,7 @@ from config import config_expr
 
 from augmentation.wave_augmentation import RandomChoice, PolarityInversion, WhiteNoise, Gain
 
-from data.abaw_expr_dataset import AbawExprDataset
+from data.abaw_vae_dataset import AbawVAEDataset, VAEGrouping
 
 from net_trainer.net_trainer import NetTrainer, ProblemType
 
@@ -60,7 +60,7 @@ def main(config: dict) -> None:
         
     source_code = 'Configuration:\n{0}\n\nSource code:\n{1}'.format(
         pprint.pformat(config), 
-        get_source_code([main, model_cls, AbawExprDataset, NetTrainer]))    
+        get_source_code([main, model_cls, AbawVAEDataset, NetTrainer]))    
 
     ds_names = {
         'train': 'train', 
@@ -70,7 +70,11 @@ def main(config: dict) -> None:
     metadata_info = {}
     all_transforms = {}
     for ds in ds_names:
-        metadata_info[ds] = os.path.join(labels_root, '{0}_Set'.format(ds_names[ds].capitalize()))
+        metadata_info[ds] = {
+            'label_filenames': os.listdir(os.path.join(labels_root, '{0}_Set'.format(ds_names[ds].capitalize()))),
+            'dataset': '{0}_Set'.format(ds_names[ds].capitalize()),
+        }
+
         if 'train' in ds:
             if aug:
                 all_transforms[ds] = [
@@ -89,22 +93,34 @@ def main(config: dict) -> None:
     datasets = {}
     for ds in ds_names:
         if 'train' in ds:
-            datasets[ds] = torch.utils.data.ConcatDataset([
-                AbawExprDataset(
+            datasets[ds] = torch.utils.data.ConcatDataset([                   
+                AbawVAEDataset(
                     audio_root=audio_root,
                     video_root=video_root,
-                    labels_root=metadata_info[ds],
+                    labels_va_root=None,
+                    labels_expr_root=labels_root,
+                    label_filenames=metadata_info[ds]['label_filenames'],
+                    dataset=metadata_info[ds]['dataset'],
                     features_root=features_root,
+                    va_frames_grouping=None,
+                    expr_frames_grouping=VAEGrouping.F2S,
+                    multitask=False,
                     shift=2, min_w_len=2, max_w_len=4, processor_name=model_name,
                     transform=t) for t in all_transforms[ds]
                 ]
             )
         else:
-            datasets[ds] = AbawExprDataset(
+            datasets[ds] = AbawVAEDataset(
                     audio_root=audio_root,
                     video_root=video_root,
-                    labels_root=metadata_info[ds],
+                    labels_va_root=None,
+                    labels_expr_root=labels_root,
+                    label_filenames=metadata_info[ds]['label_filenames'],
+                    dataset=metadata_info[ds]['dataset'],
                     features_root=features_root,
+                    va_frames_grouping=None,
+                    expr_frames_grouping=VAEGrouping.F2S,
+                    multitask=False,
                     shift=2, min_w_len=2, max_w_len=4, processor_name=model_name,
                     transform=all_transforms[ds],
                 )
@@ -112,7 +128,7 @@ def main(config: dict) -> None:
     define_seed(0)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
-    experiment_name = 'wFL{0}{1}-{2}'.format('a-' if aug else '-',
+    experiment_name = 'wCELS{0}{1}-{2}'.format('a-' if aug else '-',
                                           model_cls.__name__.replace('-', '_').replace('/', '_'),
                                           datetime.datetime.now().strftime("%Y.%m.%d-%H.%M.%S"))
         
@@ -148,7 +164,7 @@ def main(config: dict) -> None:
                                                                      eta_min=0.001 * 0.1)
 
     model, max_perf = net_trainer.run(model=model, loss=loss, optimizer=optimizer, scheduler=scheduler,
-                                      num_epochs=num_epochs, dataloaders=dataloaders, mixup_alpha=.3 if aug else None)
+                                      num_epochs=num_epochs, dataloaders=dataloaders, mixup_alpha=None)
 
     for phase in ds_names:
         if 'train' in phase:
