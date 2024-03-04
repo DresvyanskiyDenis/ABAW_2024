@@ -27,11 +27,11 @@ class UniModalTemporalModel_v1(torch.nn.Module):
         self.first_temporal_part.append(Transformer_layer(input_dim=self.num_features, num_heads=8, dropout=0.1, positional_encoding=True))
         self.first_temporal_part.append(Transformer_layer(input_dim=self.num_features, num_heads=8, dropout=0.1, positional_encoding=True))
         # two more transformer layers
-        self.second_temporal_part.append(Transformer_layer(input_dim=self.num_features//2, num_heads=8, dropout=0.1, positional_encoding=True))
-        self.second_temporal_part.append(Transformer_layer(input_dim=self.num_features//2, num_heads=8, dropout=0.1, positional_encoding=True))
+        self.second_temporal_part.append(Transformer_layer(input_dim=self.num_features, num_heads=8, dropout=0.1, positional_encoding=True))
+        self.second_temporal_part.append(Transformer_layer(input_dim=self.num_features, num_heads=8, dropout=0.1, positional_encoding=True))
         # two more transformer layers
-        self.third_temporal_part.append(Transformer_layer(input_dim=self.num_features//4, num_heads=4, dropout=0.1, positional_encoding=True))
-        self.third_temporal_part.append(Transformer_layer(input_dim=self.num_features//4, num_heads=4, dropout=0.1, positional_encoding=True))
+        self.third_temporal_part.append(Transformer_layer(input_dim=self.num_features, num_heads=4, dropout=0.1, positional_encoding=True))
+        self.third_temporal_part.append(Transformer_layer(input_dim=self.num_features, num_heads=4, dropout=0.1, positional_encoding=True))
 
 
     def forward(self, x):
@@ -44,10 +44,13 @@ class UniModalTemporalModel_v1(torch.nn.Module):
         # third temporal part
         for layer in self.third_temporal_part:
             x = layer(x, x, x)
-        # classification
-        class_output = self.classifier(x)
-        regression_output = self.regressor(x)
-        return class_output, regression_output
+        # output
+        if self.num_classes is not None:
+            output = self.classifier(x)
+            return output
+        elif self.num_regression_neurons is not None:
+            output = self.regressor(x)
+            return output
 
 
 
@@ -115,10 +118,13 @@ class UniModalTemporalModel_v2(torch.nn.Module):
         # third temporal part
         for layer in self.third_temporal_part:
             x = layer(x, x, x)
-        # classification
-        class_output = self.classifier(x)
-        regression_output = self.regressor(x)
-        return class_output, regression_output
+        # output
+        if self.num_classes is not None:
+            output = self.classifier(x)
+            return output
+        elif self.num_regression_neurons is not None:
+            output = self.regressor(x)
+            return output
 
 class UniModalTemporalModel_v3(torch.nn.Module):
     def __init__(self, input_shape:Tuple[int, int], num_classes:int, num_regression_neurons:int):
@@ -146,10 +152,13 @@ class UniModalTemporalModel_v3(torch.nn.Module):
         x = self.first_transformer(x, x, x)
         x = self.second_transformer(x, x, x)
         x = self.third_transformer(x, x, x)
-        # classification
-        class_output = self.classifier(x)
-        regression_output = self.regressor(x)
-        return class_output, regression_output
+        # output
+        if self.num_classes is not None:
+            output = self.classifier(x)
+            return output
+        elif self.num_regression_neurons is not None:
+            output = self.regressor(x)
+            return output
 
 
 
@@ -176,10 +185,13 @@ class UniModalTemporalModel_v4(torch.nn.Module):
     def forward(self, x):
         # temporal part
         x = self.temporal_part(x)
-        # classification
-        class_output = self.classifier(x)
-        regression_output = self.regressor(x)
-        return class_output, regression_output
+        # output
+        if self.num_classes is not None:
+            output = self.classifier(x)
+            return output
+        elif self.num_regression_neurons is not None:
+            output = self.regressor(x)
+            return output
 
 
 
