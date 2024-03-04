@@ -7,6 +7,8 @@ import pprint
 import datetime
 from copy import deepcopy
 
+import numpy as np
+
 import torch
 from torchvision import transforms
 
@@ -14,7 +16,7 @@ from config import config_va
 
 from augmentation.wave_augmentation import RandomChoice, PolarityInversion, WhiteNoise, Gain
 
-from data.abaw_va_dataset import AbawVADataset
+from data.abaw_vae_dataset import AbawVAEDataset, VAEGrouping
 
 from net_trainer.net_trainer import NetTrainer, ProblemType
 
@@ -23,7 +25,8 @@ from loss.loss import VALoss
 from models.audio_va_models import VAModelV1, VAModelV2, VAModelV3
 
 from utils.data_utils import get_source_code
-from utils.accuracy_utils import va_score, a_score, v_score
+
+from utils.accuracy_utils import va_score, v_score, a_score
 from utils.common_utils import define_seed
         
 
@@ -52,10 +55,10 @@ def main(config: dict) -> None:
     aug = config['AUGMENTATION']
     num_epochs = config['NUM_EPOCHS']
     batch_size = config['BATCH_SIZE']
-
+    
     source_code = 'Configuration:\n{0}\n\nSource code:\n{1}'.format(
         pprint.pformat(config), 
-        get_source_code([main, model_cls, AbawVADataset, NetTrainer]))
+        get_source_code([main, model_cls, AbawVAEDataset, NetTrainer]))    
 
     ds_names = {
         'train': 'train', 
@@ -65,7 +68,11 @@ def main(config: dict) -> None:
     metadata_info = {}
     all_transforms = {}
     for ds in ds_names:
-        metadata_info[ds] = os.path.join(labels_root, '{0}_Set'.format(ds_names[ds].capitalize()))
+        metadata_info[ds] = {
+            'label_filenames': os.listdir(os.path.join(labels_root, '{0}_Set'.format(ds_names[ds].capitalize()))),
+            'dataset': '{0}_Set'.format(ds_names[ds].capitalize()),
+        }
+        
         if 'train' in ds:
             if aug:
                 all_transforms[ds] = [
@@ -85,28 +92,42 @@ def main(config: dict) -> None:
     for ds in ds_names:
         if 'train' in ds:
             datasets[ds] = torch.utils.data.ConcatDataset([
-                AbawVADataset(
+                AbawVAEDataset(
                     audio_root=audio_root,
                     video_root=video_root,
-                    labels_root=metadata_info[ds],
+                    labels_va_root=labels_root,
+                    labels_expr_root=None,
+                    label_filenames=metadata_info[ds]['label_filenames'],
+                    dataset=metadata_info[ds]['dataset'],
                     features_root=features_root,
+                    va_frames_grouping=VAEGrouping.F2F,
+                    expr_frames_grouping=None,
+                    multitask=False,
                     shift=2, min_w_len=2, max_w_len=4, processor_name=model_name,
                     transform=t) for t in all_transforms[ds]
                 ]
             )
         else:
-            datasets[ds] = AbawVADataset(
+            datasets[ds] = AbawVAEDataset(
                     audio_root=audio_root,
                     video_root=video_root,
-                    labels_root=metadata_info[ds],
+                    labels_va_root=labels_root,
+                    labels_expr_root=None,
+                    label_filenames=metadata_info[ds]['label_filenames'],
+                    dataset=metadata_info[ds]['dataset'],
                     features_root=features_root,
+                    va_frames_grouping=VAEGrouping.F2F,
+                    expr_frames_grouping=None,
+                    multitask=False,
                     shift=2, min_w_len=2, max_w_len=4, processor_name=model_name,
                     transform=all_transforms[ds],
                 )
 
+    
     define_seed(0)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    experiment_name = '{0}{1}-{2}'.format('a-' if aug else '',
+    
+    experiment_name = '{0}{1}-{2}'.format('a-' if aug else '-',
                                           model_cls.__name__.replace('-', '_').replace('/', '_'),
                                           datetime.datetime.now().strftime("%Y.%m.%d-%H.%M.%S"))
         
@@ -126,10 +147,12 @@ def main(config: dict) -> None:
             batch_size=batch_size,
             shuffle=('train' in ds),
             num_workers=batch_size if batch_size < 9 else 8)
-        
-    model = model_cls.from_pretrained(model_name)
-    model.to(device)
+    
 
+    model = model_cls.from_pretrained(model_name)
+    
+    model.to(device)
+    
     loss = VALoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
@@ -167,6 +190,7 @@ def run_va_training() -> None:
                 
                 main(cfg)
 
+
 if __name__ == '__main__':
-    main(config=config_va)
-    # run_va_training()
+    # main(config=config_vae)
+    run_va_training()

@@ -22,6 +22,8 @@ from net_trainer.vae_net_trainer import VAENetTrainer as NetTrainer
 
 from loss.loss import VALoss, SoftFocalLoss, SoftFocalLossWrapper
 
+from models.audio_vae_models import VAEModelV1, VAEModelV2, VAEModelV3
+
 from utils.data_utils import get_source_code
 
 from utils.accuracy_utils import recall, precision, f1, va_score, v_score, a_score
@@ -201,7 +203,7 @@ def run_vae_training() -> None:
     
     model_cls = [VAEModelV1, VAEModelV2, VAEModelV3]
     
-    for augmentation in [False, True]:
+    for augmentation in [True, False]:
         for filtered in [True, False]:
             for m_cls in model_cls:
                 cfg = deepcopy(config_vae)
@@ -213,5 +215,5 @@ def run_vae_training() -> None:
 
 
 if __name__ == '__main__':
-    main(config=config_vae)
-    # run_vae_training()
+    # main(config=config_vae)
+    run_vae_training()
