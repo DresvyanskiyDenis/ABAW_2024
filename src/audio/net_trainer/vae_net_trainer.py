@@ -212,7 +212,7 @@ class VAENetTrainer:
                                           summary=summary, d_epoch_stats=d_epoch_stats, log_epochs=log_epochs, verbose=verbose)
                 else:
                     for metric in self.regression_metrics:                    
-                        d_epoch_stats['{}_{}'.format(phase, metric)] = 0
+                        d_epoch_stats['{}_{}'.format(phase, metric.__name__)] = 0
 
                 if 'expr' in phase:
                     self.calc_performance(targets=targets[1], predicts=predicts[1], metrics=self.classification_metrics, problem_type=ProblemType.CLASSIFICATION, 
@@ -220,7 +220,7 @@ class VAENetTrainer:
                                           summary=summary, d_epoch_stats=d_epoch_stats, log_epochs=log_epochs, verbose=verbose)
                 else:
                     for metric in self.classification_metrics:                    
-                        d_epoch_stats['{}_{}'.format(phase, metric)] = 0
+                        d_epoch_stats['{}_{}'.format(phase, metric.__name__)] = 0
                 
             d_global_stats.append(d_epoch_stats)
             pd_global_stats = pd.DataFrame(d_global_stats)
