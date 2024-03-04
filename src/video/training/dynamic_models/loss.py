@@ -99,10 +99,4 @@ class SoftFocalLossForSequence(nn.Module):
 
     def forward(self, x: Tensor, y: Tensor) -> Tensor:
         # x and y have the shape (batch, timesteps, num_classes)
-        # calculate the loss for each timestep
-        loss = torch.stack([self.timestep_focal_loss(x[:, i, :], y[:, i, :]) for i in range(x.shape[1])])
-        if self.aggregation == 'mean':
-            return loss.mean()
-        elif self.aggregation == 'sum':
-            return loss.sum()
-        return loss
+        return self.timestep_focal_loss(x, y)
