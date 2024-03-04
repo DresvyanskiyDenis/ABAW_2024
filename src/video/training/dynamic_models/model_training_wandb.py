@@ -1,12 +1,14 @@
 import os
 import sys
 from typing import Tuple, Optional, Dict
+import argparse
+import gc
 
-import pandas as pd
+import numpy as np
 
 # infer the path to the project
 path_to_the_project = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir,
+    os.path.join(os.path.dirname(__file__), os.path.pardir,
                  os.path.pardir, os.path.pardir, os.path.pardir)) + os.path.sep
 # dynamic appending of the path to the project to the sys.path (6 folding up)
 sys.path.append(path_to_the_project)
@@ -14,11 +16,9 @@ sys.path.append(path_to_the_project)
 sys.path.append(path_to_the_project.replace("ABAW_2023_SIU", "datatools"))
 sys.path.append(path_to_the_project.replace("ABAW_2023_SIU", "simple-HRNet-master"))
 
-import argparse
-import gc
-
 import wandb
 import torch
+import pandas as pd
 
 from pytorch_utils.lr_schedullers import WarmUpScheduler
 from pytorch_utils.training_utils.callbacks import TorchEarlyStopping
@@ -62,6 +62,11 @@ def initialize_model(model_type: str, input_shape: Tuple[int, int],
         model = UniModalTemporalModel_v4(input_shape=input_shape, num_classes=num_classes, num_regression_neurons=num_regression_neurons)
     else:
         raise ValueError(f"Unknown model type: {model_type}")
+    # print number of model aprameters
+    training_num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    all_params = sum(p.numel() for p in model.parameters())
+    print(f"Model {model_type} has {training_num_params} trainable parameters out of {all_params} total parameters.")
+
     return model
 
 
@@ -79,7 +84,7 @@ def train_model(train_generator: torch.utils.data.DataLoader,
     config = wandb.config
     wandb.config.update({'best_model_save_path': wandb.run.dir}, allow_val_change=True)
     # create model
-    model = initialize_model(training_config['model_type'], input_shape=(training_config['window_size'], 2048),
+    model = initialize_model(training_config['model_type'], input_shape=(training_config['window_size'], training_config['num_features']),
                                 num_classes=training_config['num_classes'], num_regression_neurons=training_config['num_regression_neurons'])
     # send model to device
     model.to(device)
@@ -134,7 +139,6 @@ def train_model(train_generator: torch.utils.data.DataLoader,
                                  batch_wise_lr_scheduller=lr_scheduller if config.lr_scheduller == 'Warmup_cyclic' else None,
                                  loss_multiplication_factor=config.loss_multiplication_factor)
         print("Train loss: %.10f" % train_loss)
-
         # validate the model
         model.eval()
         print("Evaluation of the model on dev set.")
@@ -142,7 +146,9 @@ def train_model(train_generator: torch.utils.data.DataLoader,
                                  video_to_fps=config.video_to_fps_dict, model=model, labels_type=config.challenge,
                                  feature_columns=config.feature_columns,
                                  labels_columns=config.labels_columns,
+                                 window_size=config.window_size, device=device,
                                  batch_size=config.batch_size, resampled_fps=config.common_fps)
+        print(val_metrics)
 
         # update best val metrics got on validation set and log them using wandb # TODO: write separate function on updating wandb metrics
         if config.challenge == 'Exp':
@@ -199,16 +205,17 @@ def main(path_to_config, **params):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # parse config file
     config = load_config_file(path_to_config)
+    # update config with passed params
+    config.update(params)
     # load additional parameters to add to config
-    video_to_fps = load_fps_file(config['path_to_fps_file'])
     feature_columns = [f'embedding_{i}' for i in range(256)]
     if config['challenge'] == 'Exp':
         labels_columns = [f'category_{i}' for i in range(config['num_classes'])]
     else:
         labels_columns = ['arousal', 'valence']
-    # update config with passed params
-    config.update(params)
+    # update config with additional loaded parameters
     config['path_to_fps_file'] = os.path.join(path_to_the_project, config['path_to_fps_file'])
+    video_to_fps = load_fps_file(config['path_to_fps_file'])
     config['video_to_fps_dict'] = video_to_fps
     config['feature_columns'] = feature_columns
     config['labels_columns'] = labels_columns
@@ -230,11 +237,13 @@ if __name__ == "__main__":
         epilog='Parameters: path_to_config_file: str')
     # short name -p, full name --path_to_config_file
     parser.add_argument('--path_to_config_file', '-p', type=str, help='Path to the config file', required=True)
+    parser.add_argument('--model_type', '-m', type=str, help='Type of the model. dynamic_v1, dynamic_v2, dynamic_v3, dynamic_v4', required=True)
     parser.add_argument('--challenge', type=str, help='Challenge. VA or Exp.', required=True)
     parser.add_argument('--window_size', '-w', type=int, help='Window size in frames (FPS=5)', required=True)
     args = parser.parse_args()
     # run main script with passed args
-    main(args.path_to_config_file, window_size=args.window_size, stride=args.window_size//2, challenge=args.challenge)
+    main(args.path_to_config_file, window_size=args.window_size, stride=args.window_size//5, challenge=args.challenge,
+         model_type=args.model_type)
     # clear RAM
     gc.collect()
     torch.cuda.empty_cache()

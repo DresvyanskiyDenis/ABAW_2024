@@ -33,7 +33,7 @@ def train_step(model: torch.nn.Module, criterion: torch.nn.Module,
     loss = criterion(outputs, ground_truths)
     # clear RAM from unused variables
     del outputs, ground_truths
-    return loss
+    return [loss]
 
 
 def train_epoch(model: torch.nn.Module, train_generator: torch.utils.data.DataLoader,

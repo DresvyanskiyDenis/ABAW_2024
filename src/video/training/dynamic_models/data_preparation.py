@@ -36,32 +36,6 @@ def generate_fps_file(path_to_videos:str, output_path:str)->None:
     with open(output_path, 'wb') as f:
         pickle.dump(fps_dict, f)
 
-def merge_exp_with_va_labels(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
-    """ Merges the labels from the Exp challenge with the labels from the VA challenge.
-
-    :param df1: pd.DataFrame
-        df with the labels from the Exp challenge.
-    :param df2: pd.DataFrame
-        df with the labels from the VA challenge.
-    :return: pd.DataFrame
-        The concatenated df.
-    """
-    if df1 is None:
-        # create dataframe and generate np.Nans in the "category" columns
-        df1 = pd.DataFrame({"path_to_frame": df2["path_to_frame"].values})
-        df1["category"] = np.NaN
-    if df2 is None:
-        # create dataframe and generate np.Nans in the "valence" and "arousal" columns
-        df2 = pd.DataFrame({"path_to_frame": df1["path_to_frame"].values})
-        df2["valence"] = np.NaN
-        df2["arousal"] = np.NaN
-    # check if the length of the dfs is the same
-    assert len(df1) == len(df2), "The length of the dfs should be the same."
-    result = pd.merge(df1, df2, on="path_to_frame", suffixes=('', '_y'))
-    # delete duplicates in columns
-    result.drop([col for col in result.columns if '_y' in col], axis=1, inplace=True)
-    return result
-
 
 def convert_categories_to_on_hot(df: pd.DataFrame) -> pd.DataFrame:
     """ Converts the categories to one-hot vectors preserving the np.Nans.
@@ -183,13 +157,13 @@ def load_train_dev(config)-> Tuple[pd.DataFrame, pd.DataFrame]:
     train.rename(columns={col: col.split("_")[0] for col in train.columns if '_x' in col}, inplace=True)
     dev.rename(columns={col: col.split("_")[0] for col in dev.columns if '_x' in col}, inplace=True)
     # reorder columns. First columns are columns from labels, then embeddings
-    columns = list(train_labels.columns) + list(train.columns.difference(train_labels.columns))
+    columns = list(train_labels.columns) + [col for col in train if col not in train_labels.columns]
     train = train[columns]
     dev = dev[columns]
     return train, dev
 
 
-def separate_data_into_video_sequences(data: pd.DataFrame, video_to_fps:Dict[str, float], common_fps:int) -> Dict[str, pd.DataFrame]:
+def separate_data_into_video_sequences(data: pd.DataFrame, video_to_fps:Dict[str, float], common_fps:Optional[int]=None) -> Dict[str, pd.DataFrame]:
     """ Separates dataframe into video sequences based on the 'path' column. Moreover,
     resamples every video to the common_fps by taking every n-th frame.
 
@@ -211,7 +185,10 @@ def separate_data_into_video_sequences(data: pd.DataFrame, video_to_fps:Dict[str
         # get the dataframe for the video
         video_data = data[data["video_name"] == video_name]
         # resample the video to the common_fps
-        every_frame = int(round(video_to_fps[video_name] / common_fps))
+        if common_fps is not None:
+            every_frame = int(round(video_to_fps[video_name] / common_fps))
+        else:
+            every_frame = 1
         video_data = video_data.iloc[::every_frame]
         result[video_name] = video_data
     return result
@@ -328,7 +305,7 @@ def get_dev_resampled_and_full_fps_dicts(config:dict)->Tuple[Dict[str, pd.DataFr
     video_to_fps = load_fps_file(config['path_to_fps_file'])
     # separate data into video sequences
     dev_resampled = separate_data_into_video_sequences(dev, video_to_fps, config['common_fps'])
-    dev_full_fps = separate_data_into_video_sequences(dev, video_to_fps, 1)
+    dev_full_fps = separate_data_into_video_sequences(dev, video_to_fps, None)
     return dev_resampled, dev_full_fps
 
 
@@ -361,7 +338,6 @@ def __calculate_class_weights(df, labels_columns)->torch.Tensor:
     labels = df[labels_columns]
     labels = labels.dropna()
     class_weights = labels.sum(axis=0)
-    print(class_weights)
     class_weights = 1. / (class_weights / class_weights.sum())
     # normalize class weights
     class_weights = class_weights / class_weights.sum()
