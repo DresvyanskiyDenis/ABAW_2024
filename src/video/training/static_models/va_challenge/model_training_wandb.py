@@ -289,7 +289,8 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     else:
         raise ValueError("Unknown model type: %s" % config.MODEL_TYPE)
     # load model weights
-    model.load_state_dict(torch.load(config.MODEL_WEIGHTS_PATH))
+    if model_type!="Modified_HRNet":
+        model.load_state_dict(torch.load(config.MODEL_WEIGHTS_PATH))
     model.classifier = torch.nn.Identity()
     # send model to GPU or CPU
     model = model.to(device)

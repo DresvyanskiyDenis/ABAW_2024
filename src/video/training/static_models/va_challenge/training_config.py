@@ -6,7 +6,7 @@ VA_DEV_LABELS_PATH:str = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Est
 Exp_TRAIN_LABELS_PATH:str = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/"
 Exp_DEV_LABELS_PATH:str = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/"
 
-METAFILE_PATH:str = "/nfs/scratch/ddresvya/Data/preprocessed/faces/metadata.csv"
+METAFILE_PATH:str = "/nfs/scratch/ddresvya/Data/preprocessed/pose/metadata.csv"
 
 # model architecture params
 NUM_CLASSES:int = None
@@ -14,6 +14,7 @@ MODEL_INPUT_SIZE:Dict[str, int] = {
 	"EfficientNet-B1":224,
 	"EfficientNet-B4":380,
 	"ViT_b_16":224,
+	"Modified_HRNet": 256,
 }
 
 # training metaparams
