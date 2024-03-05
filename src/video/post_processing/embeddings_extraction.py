@@ -93,6 +93,7 @@ def initialize_model_and_preprocessing_fucntions(config)->Tuple[torch.nn.Module,
     if config['model_type']=='EfficientNet-B4':
         model = Modified_EfficientNet_B4(embeddings_layer_neurons=256, num_classes=config['num_classes'],
                                          num_regression_neurons=config['num_regression_neurons'])
+        if config['challenge'] == "VA": model.classifier = torch.nn.Identity()
         model.load_state_dict(torch.load(config['path_to_weights']))
         # cut off last two layers
         model = torch.nn.Sequential(*list(model.children())[:-2])
@@ -101,6 +102,7 @@ def initialize_model_and_preprocessing_fucntions(config)->Tuple[torch.nn.Module,
     elif config['model_type']=='EfficientNet-B1':
         model = Modified_EfficientNet_B1(embeddings_layer_neurons=256, num_classes=config['num_classes'],
                                          num_regression_neurons=config['num_regression_neurons'])
+        if config['challenge'] == "VA": model.classifier = torch.nn.Identity()
         model.load_state_dict(torch.load(config['path_to_weights']))
         # cut off last two layers
         model = torch.nn.Sequential(*list(model.children())[:-2])
@@ -109,6 +111,7 @@ def initialize_model_and_preprocessing_fucntions(config)->Tuple[torch.nn.Module,
     elif config['model_type']=='ViT_b_16':
         model = Modified_ViT_B_16(embeddings_layer_neurons=256, num_classes=config['num_classes'],
                                   num_regression_neurons=config['num_regression_neurons'])
+        if config['challenge'] == "VA": model.classifier = torch.nn.Identity()
         model.load_state_dict(torch.load(config['path_to_weights']))
         # cut off last two layers
         model = torch.nn.Sequential(*list(model.children())[:-2])
@@ -291,13 +294,13 @@ def main():
     # check if the output path exists
     folder_b1 = os.path.dirname(config_face_extraction_b1_VA['output_path_train'])
     folder_vit = os.path.dirname(config_face_extraction_b4_VA['output_path_train'])
-    folder_hrnet = os.path.dirname(config_face_extraction_HRNet_VA['output_path_train'])
+    #folder_hrnet = os.path.dirname(config_face_extraction_HRNet_VA['output_path_train'])
     # create dirs
     os.makedirs(folder_b1, exist_ok=True)
     os.makedirs(folder_vit, exist_ok=True)
-    os.makedirs(folder_hrnet, exist_ok=True)
+    #os.makedirs(folder_hrnet, exist_ok=True)
     # extract features
-    extract_features(config_face_extraction_HRNet_VA)
+    #extract_features(config_face_extraction_HRNet_VA)
     extract_features(config_face_extraction_b1_VA)
     extract_features(config_face_extraction_b4_VA)
 
