@@ -121,7 +121,7 @@ def initialize_model_and_preprocessing_fucntions(config)->Tuple[torch.nn.Module,
         model = Modified_HRNet(pretrained=True,
                                path_to_weights=config['path_hrnet_weights'],
                                embeddings_layer_neurons=256, num_classes=config['num_classes'],
-                               num_regression_neurons=config['num_regression_neurons'],
+                               num_regression_neurons=config['num_regression_neurons'] if config['challenge'] == "VA" else None,
                                consider_only_upper_body=True)
         if config['challenge'] == "VA": model.classifier = torch.nn.Identity()
         model.load_state_dict(torch.load(config['path_to_weights']))
@@ -179,7 +179,7 @@ def extract_features(config):
 
 
 def main():
-    """config_face_extraction_b1_exp = {
+    config_face_extraction_b1_exp = {
         'challenge': "Exp",
         'Exp_train_labels_path': '/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/',
         'Exp_dev_labels_path': '/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/',
@@ -190,6 +190,7 @@ def main():
         'model_type': 'EfficientNet-B1',
         'path_to_weights': "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/Exp_challenge/AffWild2_static_exp_best_B1.pth",
         'num_classes': 8,
+        'num_regression_neurons': 2,
         'output_path_train': "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/Exp_challenge/EfficientNet_b1/b1_facial_features_train.csv",
         'output_path_dev': "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/Exp_challenge/EfficientNet_b1/b1_facial_features_dev.csv",
     }
@@ -205,6 +206,7 @@ def main():
         'model_type': 'ViT_b_16',
         'path_to_weights': "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/Exp_challenge/AffWilf2_static_exp_best_ViT.pth",
         'num_classes': 8,
+        'num_regression_neurons': 2,
         'output_path_train': "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/Exp_challenge/ViT_b_16/ViT_b_16_facial_features_train.csv",
         'output_path_dev': "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/Exp_challenge/ViT_b_16/ViT_b_16_facial_features_dev.csv",
     }
@@ -222,6 +224,7 @@ def main():
         'path_hrnet_weights': "/nfs/home/ddresvya/scripts/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
         'path_to_weights': "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/Exp_challenge/AffWild2_static_exp_best_HRNet.pth",
         'num_classes': 8,
+        'num_regression_neurons': 2,
         'output_path_train': "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/Exp_challenge/HRNet/HRNet_kinesics_features_train.csv",
         'output_path_dev': "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/Exp_challenge/HRNet/HRNet_kinesics_features_dev.csv",
     }
@@ -238,7 +241,8 @@ def main():
     # extract features
     extract_features(config_pose_extraction_HRNet)
     extract_features(config_face_extraction_b1_exp)
-    extract_features(config_face_extraction_ViT_exp)"""
+    extract_features(config_face_extraction_ViT_exp)
+
 
 
     # VA challenge
@@ -294,15 +298,16 @@ def main():
     # check if the output path exists
     folder_b1 = os.path.dirname(config_face_extraction_b1_VA['output_path_train'])
     folder_vit = os.path.dirname(config_face_extraction_b4_VA['output_path_train'])
-    #folder_hrnet = os.path.dirname(config_face_extraction_HRNet_VA['output_path_train'])
+    folder_hrnet = os.path.dirname(config_face_extraction_HRNet_VA['output_path_train'])
     # create dirs
     os.makedirs(folder_b1, exist_ok=True)
     os.makedirs(folder_vit, exist_ok=True)
-    #os.makedirs(folder_hrnet, exist_ok=True)
+    os.makedirs(folder_hrnet, exist_ok=True)
     # extract features
-    #extract_features(config_face_extraction_HRNet_VA)
-    extract_features(config_face_extraction_b1_VA)
     extract_features(config_face_extraction_b4_VA)
+    extract_features(config_face_extraction_HRNet_VA)
+    extract_features(config_face_extraction_b1_VA)
+
 
 
 
