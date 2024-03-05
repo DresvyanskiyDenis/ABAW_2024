@@ -184,7 +184,7 @@ class UniModalTemporalModel_v4(torch.nn.Module):
 
     def forward(self, x):
         # temporal part
-        x = self.temporal_part(x)
+        x, _ = self.temporal_part(x)
         # output
         if self.num_classes is not None:
             output = self.classifier(x)
