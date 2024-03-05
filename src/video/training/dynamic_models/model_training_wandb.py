@@ -80,7 +80,9 @@ def train_model(train_generator: torch.utils.data.DataLoader,
         print(f"{key}: {value}")
     print("____________________________________________________")
     # initialization of Weights and Biases
-    wandb.init(project=f"ABAW_2023_dynamic_{training_config['challenge']}", config=training_config, entity="denisdresvyanskiy")
+    wandb_config = training_config.copy()
+    del wandb_config['video_to_fps_dict']
+    wandb.init(project=f"ABAW_2023_dynamic_{training_config['challenge']}", config=wandb_config, entity="denisdresvyanskiy")
     config = wandb.config
     wandb.config.update({'best_model_save_path': wandb.run.dir}, allow_val_change=True)
     # create model
@@ -143,7 +145,7 @@ def train_model(train_generator: torch.utils.data.DataLoader,
         model.eval()
         print("Evaluation of the model on dev set.")
         val_metrics = evaluate_on_dev_set_full_fps(dev_set_full_fps=dev_data_full_fps, dev_set_resampled=dev_data_resampled,
-                                 video_to_fps=config.video_to_fps_dict, model=model, labels_type=config.challenge,
+                                 video_to_fps=training_config['video_to_fps_dict'], model=model, labels_type=config.challenge,
                                  feature_columns=config.feature_columns,
                                  labels_columns=config.labels_columns,
                                  window_size=config.window_size, device=device,

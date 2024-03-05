@@ -7,37 +7,60 @@ from scipy.signal import resample
 from scipy.special import softmax
 from sklearn.metrics import f1_score
 
+from decorators.common_decorators import timer
 from src.video.training.dynamic_models.metrics import np_concordance_correlation_coefficient
 
-
-def interpolate_to_full_fps(predictions:np.ndarray, predictions_fps:int, ground_truths_fps:int)->np.ndarray:
-    """ Interpolates the predictions with predictions_fps to the ground_truths_fps (full fps of the video)
-    TO do so, the function performs the following steps:
-    1. Calculate the number of frames in the video predictions.shape[0] / predictions_fps * ground_truths_fps
-    2. Create a new array with the number of frames from step 1
-    3. interpolate the predictions to the new array. Example:
-    we have predictions = [0 0 0 0 0 1 1 1 1 1] withf fps = 5 and we want to interpolate it to fps = 15
-    the new array firstly should be generated in a way: [0 _ _ 0 _ _ 0 _ _ 0 _ _ 1 _ _ 1 _ _ 1 _ _ 1 _ _ 1 _ _]
-    then, we should fill the gaps by interpolated values (linear interpolation):
-                                                        [0 0 0 0 0 0 0 0 0 0 0.5 0.5 1 1 1 1 1 1 1 1 1 1 1 1 1 1]
-    4. return the new array
+@timer
+def interpolate_to_100_fps(predictions:np.ndarray, predictions_timesteps:np.ndarray)->\
+        Tuple[np.ndarray, np.ndarray]:
+    """ Interpolates the predictions with predictions_fps to the 100 fps. Thus we will have prediction for every 0.01 second.
 
     :param predictions: np.ndarray
         Array with predictions. Shape: (num_frames, num_classes)
     :param predictions_fps: int
         FPS of the predictions
-    :param ground_truths_fps: int
-        FPS of the ground truth
-    :return: np.ndarray
-        New array with interpolated predictions. Shape: (predictions.shape[0] / predictions_fps * ground_truths_fps, num_classes)
+    :return: Tuple[np.ndarray, np.ndarray]
+        Tuple with interpolated predictions and timesteps.
     """
-    result_num_frames = int(np.ceil(predictions.shape[0] / predictions_fps * ground_truths_fps))
-    new_predictions = np.zeros((result_num_frames, predictions.shape[-1]))
-    # fill the new array with the predictions
-    for i in range(predictions.shape[-1]):
-        new_predictions[:, i] = resample(predictions[:, i], result_num_frames)
-    return new_predictions
-
+    new_timesteps = np.arange(0, predictions_timesteps[-1]+0.01, 1/100)
+    # round it to 2 decimal places
+    new_timesteps = np.round(new_timesteps, 2)
+    new_predictions = np.ones((len(new_timesteps), predictions.shape[-1]))*-1
+    # fill in the new_predictions array with values from the predictions depending on the timesteps
+    mask = np.isin(new_timesteps, predictions_timesteps)
+    new_predictions[mask] = predictions
+    # We need to fill in the missing values that are denoted with -1. THe problem is that the predictions
+    # has not been filled monotonicallz as there were some missing frames, filtered oput frames and so on.
+    # However, we need to interpolate somehow the missing values. interp1d requires monotonic array.
+    # therefore, we need to do it by hand
+    new_predictions_copy = new_predictions.copy()
+    for i in range(new_predictions_copy.shape[0]):
+        if np.all(new_predictions_copy[i] == -1):
+            # find the closest non -1 values with "distance" to it
+            left_idx = i-1
+            right_idx = i+1
+            # find the closest left value with its index
+            while left_idx>-1:
+                if np.all(new_predictions_copy[left_idx] != -1):
+                    break
+                left_idx -= 1
+            # the same for the right value
+            while right_idx<new_predictions_copy.shape[0]:
+                if np.all(new_predictions_copy[right_idx] != -1):
+                    break
+                right_idx += 1
+            # interpolate the missing value taking into account the distance to the left and right values
+            if left_idx == -1:
+                new_predictions[i] = new_predictions_copy[right_idx]
+            elif right_idx == new_predictions_copy.shape[0]:
+                new_predictions[i] = new_predictions_copy[left_idx]
+            else:
+                weights = np.array([i - left_idx, right_idx - i])
+                # inverse proportional normalized weights
+                weights = 1./weights
+                weights = weights/weights.sum()
+                new_predictions[i] = weights[0]*new_predictions_copy[left_idx] + weights[1]*new_predictions_copy[right_idx]
+    return new_predictions, new_timesteps
 
 def __cut_video_on_windows(video:pd.DataFrame, window_size:int, stride:int)->List[pd.DataFrame]:
     """ Cuts the video on windows with specified window size and stride.
@@ -53,6 +76,9 @@ def __cut_video_on_windows(video:pd.DataFrame, window_size:int, stride:int)->Lis
         List of dataframes with windows. Each dataframe has the same columns as the input dataframe.
     """
     if len(video) < window_size:
+        # pad it with zeros at the start
+        zeros = pd.DataFrame(np.zeros((window_size - len(video), len(video.columns))), columns=video.columns)
+        video = pd.concat([zeros, video], axis=0)
         return [video]
     # create list to store the windows
     windows = []
@@ -93,6 +119,44 @@ def average_predictions_on_timesteps(timesteps_with_predictions:List[Tuple[np.nd
         averaged_predictions[i] = predictions.mean(axis=0)
     return unique_timesteps, averaged_predictions
 
+def synchronize_predictions_with_ground_truth(predictions:np.ndarray, predictions_timesteps:np.ndarray,
+                                                ground_truth:np.ndarray, ground_truth_timesteps:np.ndarray)->\
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """ Synchronizes the predictions with ground truth. It means that we take only the predictions
+    that have the same timesteps as the ground truth.
+
+
+    :param predictions: np.ndarray
+        The predictions with the shape (num_timesteps1, num_classes or num_regressions)
+    :param predictions_timesteps: np.ndarray
+        The timesteps of the predictions. Shape: (num_timesteps1,)
+    :param ground_truth: np.ndarray
+        The ground truth with the shape (num_timesteps2, num_classes or num_regressions)
+    :param ground_truth_timesteps: np.ndarray
+        The timesteps of the ground truth. Shape: (num_timesteps2,)
+    :return: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        Tuple with synchronized predictions and ground truth. The first two elements are the synchronized predictions
+        and timesteps, the last two elements are the synchronized ground truth and timesteps.
+    """
+    # find common timesteps
+    common_timesteps = np.intersect1d(ground_truth_timesteps, predictions_timesteps)
+    # find indices of the common timesteps in the predictions and ground truth
+    predictions_indices = np.where(np.isin(predictions_timesteps, common_timesteps))[0]
+    ground_truth_indices = np.where(np.isin(ground_truth_timesteps, common_timesteps))[0]
+    # at this point, the number of common timesteps in the predictions and ground truth should be the same
+    new_predictions = predictions[predictions_indices]
+    new_predictions_timesteps = predictions_timesteps[predictions_indices]
+    new_ground_truth = ground_truth[ground_truth_indices]
+    new_ground_truth_timesteps = ground_truth_timesteps[ground_truth_indices]
+    # check if the number of timesteps is the same
+    assert len(new_predictions_timesteps) == len(new_ground_truth_timesteps)
+    return new_predictions, new_predictions_timesteps, new_ground_truth, new_ground_truth_timesteps
+
+
+
+
+
+
 
 def __apply_hamming_smoothing(array:np.ndarray, smoothing_window_size:int)->np.ndarray:
     """ Smooths the data by applying the Hamming window to every channel of the array.
@@ -113,7 +177,7 @@ def __apply_hamming_smoothing(array:np.ndarray, smoothing_window_size:int)->np.n
 
 
 
-
+@timer
 def evaluate_on_dev_set_full_fps(dev_set_full_fps:Dict[str, pd.DataFrame], dev_set_resampled:Dict[str, pd.DataFrame],
                                  video_to_fps:Dict[str, float], model:torch.nn.Module, labels_type:str,
                                  feature_columns:List[str], labels_columns:List[str],
@@ -145,26 +209,13 @@ def evaluate_on_dev_set_full_fps(dev_set_full_fps:Dict[str, pd.DataFrame], dev_s
         ground_truth = dev_set_full_fps[video_name][labels_columns].values
         ground_truth_timesteps = dev_set_full_fps[video_name]['timestamp'].values
         ground_truth_fps = video_to_fps[video_name]
-        # interpolate predictions to the full fps
-        predictions = interpolate_to_full_fps(predictions, predictions_fps=resampled_fps, ground_truths_fps=ground_truth_fps)
+        # interpolate predictions to the 100 fps
+        predictions, predictions_timesteps = interpolate_to_100_fps(predictions, prediction_timesteps)
+        # synchronize predictions with ground truth
+        predictions, prediction_timesteps, ground_truth, ground_truth_timesteps = \
+            synchronize_predictions_with_ground_truth(predictions, predictions_timesteps, ground_truth, ground_truth_timesteps)
         # Apply hamming smoothing
         predictions = __apply_hamming_smoothing(predictions, smoothing_window_size=int(np.round(ground_truth_fps))//2)
-        # check if the number of frames is the same
-        if np.abs(predictions.shape[0] - ground_truth.shape[0]) > 10:
-            print(f'Video {video_name} has different number of frames in predictions and ground truth. THe number is {np.abs(predictions.shape[0] - ground_truth.shape[0])}')
-            #print("Labels timesteps:", ground_truth_timesteps)
-            #print("Predictions timesteps:", prediction_timesteps)
-            print("This video will be ignored during the evaluation.")
-            print("----------------------------------------------")
-            continue # TODO: this is a temporary solution. It arises because there are some missing frames in the predictions
-                     # as the face has not been identified in some frames. We should fix it in the future.
-        # repeat last prediction to match the number of frames
-        if ground_truth.shape[0] > predictions.shape[0]:
-            repetition = np.repeat(predictions[-1][np.newaxis, :], ground_truth.shape[0] - predictions.shape[0], axis=0)
-            predictions = np.concatenate([predictions, repetition], axis=0)
-        # OR cut off the last predictions to match the number of frames
-        elif ground_truth.shape[0] < predictions.shape[0]:
-            predictions = predictions[:ground_truth.shape[0]]
         # calculate the metric
         if labels_type == 'Exp':
             predictions = softmax(predictions, axis=-1)
