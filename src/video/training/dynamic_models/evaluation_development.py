@@ -10,57 +10,45 @@ from sklearn.metrics import f1_score
 from decorators.common_decorators import timer
 from src.video.training.dynamic_models.metrics import np_concordance_correlation_coefficient
 
-@timer
-def interpolate_to_100_fps(predictions:np.ndarray, predictions_timesteps:np.ndarray)->\
-        Tuple[np.ndarray, np.ndarray]:
-    """ Interpolates the predictions with predictions_fps to the 100 fps. Thus we will have prediction for every 0.01 second.
 
-    :param predictions: np.ndarray
-        Array with predictions. Shape: (num_frames, num_classes)
-    :param predictions_fps: int
-        FPS of the predictions
-    :return: Tuple[np.ndarray, np.ndarray]
-        Tuple with interpolated predictions and timesteps.
+def __interpolate_to_100_fps(predictions:np.ndarray, predictions_timesteps:np.ndarray)->\
+        Tuple[np.ndarray, np.ndarray]:
+    """ Interpolates the predictions with predictions_fps to the 100 fps using pandas dataframe
+
+    :param predictions:
+    :param predictions_timesteps:
+    :return:
     """
-    new_timesteps = np.arange(0, predictions_timesteps[-1]+0.01, 1/100)
-    # round it to 2 decimal places
-    new_timesteps = np.round(new_timesteps, 2)
-    new_predictions = np.ones((len(new_timesteps), predictions.shape[-1]))*-1
-    # fill in the new_predictions array with values from the predictions depending on the timesteps
-    mask = np.isin(new_timesteps, predictions_timesteps)
-    new_predictions[mask] = predictions
-    # We need to fill in the missing values that are denoted with -1. THe problem is that the predictions
-    # has not been filled monotonicallz as there were some missing frames, filtered oput frames and so on.
-    # However, we need to interpolate somehow the missing values. interp1d requires monotonic array.
-    # therefore, we need to do it by hand
-    new_predictions_copy = new_predictions.copy()
-    for i in range(new_predictions_copy.shape[0]):
-        if np.all(new_predictions_copy[i] == -1):
-            # find the closest non -1 values with "distance" to it
-            left_idx = i-1
-            right_idx = i+1
-            # find the closest left value with its index
-            while left_idx>-1:
-                if np.all(new_predictions_copy[left_idx] != -1):
-                    break
-                left_idx -= 1
-            # the same for the right value
-            while right_idx<new_predictions_copy.shape[0]:
-                if np.all(new_predictions_copy[right_idx] != -1):
-                    break
-                right_idx += 1
-            # interpolate the missing value taking into account the distance to the left and right values
-            if left_idx == -1:
-                new_predictions[i] = new_predictions_copy[right_idx]
-            elif right_idx == new_predictions_copy.shape[0]:
-                new_predictions[i] = new_predictions_copy[left_idx]
-            else:
-                weights = np.array([i - left_idx, right_idx - i])
-                # inverse proportional normalized weights
-                weights = 1./weights
-                weights = weights/weights.sum()
-                new_predictions[i] = weights[0]*new_predictions_copy[left_idx] + weights[1]*new_predictions_copy[right_idx]
-    return new_predictions, new_timesteps
+    # if the first timestep is not 0.0 seconds, than add it to the timesteps and first row of the predictions
+    if predictions_timesteps[0] != 0.0:
+        predictions_timesteps = np.concatenate([[0.0], predictions_timesteps])
+        predictions = np.concatenate([np.expand_dims(predictions[0].copy(), axis=0), predictions], axis=0)
+    # create dataframe with predictions
+    predictions_df = pd.DataFrame(predictions, columns=[f'pred_{i}' for i in range(predictions.shape[-1])])
+    predictions_df['timestep'] = predictions_timesteps
+    predictions_df["milliseconds"] = predictions_df["timestep"] * 1000
+    # set timestep as index
+    predictions_df = predictions_df.set_index('milliseconds')
+    # convert index to TimeDeltaIndex
+    predictions_df.index = pd.to_timedelta(predictions_df.index, unit='ms')
+    # Resample the DataFrame to 100 FPS (0.01 seconds interval)
+    predictions_df = predictions_df.resample('10L').asfreq()
+
+    # Interpolate the missing values
+    predictions_df = predictions_df.interpolate(method='linear')
+
+    # Reset the index to get the timesteps back as a column
+    predictions_df.reset_index(inplace=True)
+
+    predictions_df['timestep'] = predictions_df['milliseconds'].dt.total_seconds().apply("float64")
+
+    # Get the predictions and timesteps
+    predictions = predictions_df[[f'pred_{i}' for i in range(predictions.shape[-1])]].values
+    predictions_timesteps = predictions_df['timestep'].values
+    # round timestep to 2 decimal places
+    predictions_timesteps = np.round(predictions_timesteps, 2)
+    return predictions, predictions_timesteps
+
 
 def __cut_video_on_windows(video:pd.DataFrame, window_size:int, stride:int)->List[pd.DataFrame]:
     """ Cuts the video on windows with specified window size and stride.
@@ -75,7 +63,7 @@ def __cut_video_on_windows(video:pd.DataFrame, window_size:int, stride:int)->Lis
     :return: List[pd.DataFrame]
         List of dataframes with windows. Each dataframe has the same columns as the input dataframe.
     """
-    if len(video) < window_size:
+    if len(video) <= window_size:
         # pad it with zeros at the start
         zeros = pd.DataFrame(np.zeros((window_size - len(video), len(video.columns))), columns=video.columns)
         video = pd.concat([zeros, video], axis=0)
@@ -138,6 +126,9 @@ def synchronize_predictions_with_ground_truth(predictions:np.ndarray, prediction
         Tuple with synchronized predictions and ground truth. The first two elements are the synchronized predictions
         and timesteps, the last two elements are the synchronized ground truth and timesteps.
     """
+    # delete duplicates in the ground truth timesteps and corresponding ground truth
+    ground_truth_timesteps, indices = np.unique(ground_truth_timesteps, return_index=True)
+    ground_truth = ground_truth[indices]
     # find common timesteps
     common_timesteps = np.intersect1d(ground_truth_timesteps, predictions_timesteps)
     # find indices of the common timesteps in the predictions and ground truth
@@ -210,7 +201,7 @@ def evaluate_on_dev_set_full_fps(dev_set_full_fps:Dict[str, pd.DataFrame], dev_s
         ground_truth_timesteps = dev_set_full_fps[video_name]['timestamp'].values
         ground_truth_fps = video_to_fps[video_name]
         # interpolate predictions to the 100 fps
-        predictions, predictions_timesteps = interpolate_to_100_fps(predictions, prediction_timesteps)
+        predictions, predictions_timesteps = __interpolate_to_100_fps(predictions, prediction_timesteps)
         # synchronize predictions with ground truth
         predictions, prediction_timesteps, ground_truth, ground_truth_timesteps = \
             synchronize_predictions_with_ground_truth(predictions, predictions_timesteps, ground_truth, ground_truth_timesteps)
@@ -236,6 +227,20 @@ def evaluate_on_dev_set_full_fps(dev_set_full_fps:Dict[str, pd.DataFrame], dev_s
                   'val_CCC_A':arousal_result}
     return result
 
+if __name__=="__main__":
+    # small test of the interpolation
+    timesteps = np.array([0.01, 0.02, 0.05, 0.06, 0.07, 0.09, 0.1])
+    predictions = np.array([[0.1, 0.1],
+                              [0.2, 0.2],
+                              [0.5, 0.5],
+                                [0.6, 0.6],
+                                [0.7, 0.7],
+                                [0.9, 0.9],
+                                [1.0, 1.0]])
+    predictions, timesteps = __interpolate_to_100_fps(predictions, timesteps)
+
+    print(timesteps)
+    print(predictions)
 
 
 
