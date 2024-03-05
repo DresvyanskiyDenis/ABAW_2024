@@ -283,9 +283,9 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
                                   num_regression_neurons=2)
     elif config.MODEL_TYPE == "Modified_HRNet":
         model = Modified_HRNet(pretrained=True,
-                               path_to_weights="/work/home/dsu/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
+                               path_to_weights="/nfs/home/ddresvya/scripts/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
                                embeddings_layer_neurons=256, num_classes=8,
-                               num_regression_neurons=2)
+                               num_regression_neurons=2, consider_only_upper_body=True)
     else:
         raise ValueError("Unknown model type: %s" % config.MODEL_TYPE)
     # load model weights
