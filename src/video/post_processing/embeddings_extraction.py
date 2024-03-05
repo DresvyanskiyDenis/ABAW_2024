@@ -27,7 +27,7 @@ def load_labels_with_frame_paths(config) -> Tuple[pd.DataFrame, pd.DataFrame]:
     if config['challenge'] == "VA":
         train_labels, dev_labels = load_train_dev_AffWild2_labels_with_frame_paths(
             paths_to_labels=(config['VA_train_labels_path'], config['VA_dev_labels_path']),
-            path_to_metadata=config['metapath_file'],
+            path_to_metadata=config['metafile_path'],
             challenge=config['challenge'])
     elif config['challenge'] == "Exp":
         train_labels, dev_labels = load_train_dev_AffWild2_labels_with_frame_paths(
@@ -92,7 +92,7 @@ def initialize_model_and_preprocessing_fucntions(config)->Tuple[torch.nn.Module,
     """
     if config['model_type']=='EfficientNet-B4':
         model = Modified_EfficientNet_B4(embeddings_layer_neurons=256, num_classes=config['num_classes'],
-                                         num_regression_neurons=2)
+                                         num_regression_neurons=config['num_regression_neurons'])
         model.load_state_dict(torch.load(config['path_to_weights']))
         # cut off last two layers
         model = torch.nn.Sequential(*list(model.children())[:-2])
@@ -100,7 +100,7 @@ def initialize_model_and_preprocessing_fucntions(config)->Tuple[torch.nn.Module,
                                    EfficientNet_image_preprocessor()]
     elif config['model_type']=='EfficientNet-B1':
         model = Modified_EfficientNet_B1(embeddings_layer_neurons=256, num_classes=config['num_classes'],
-                                         num_regression_neurons=2)
+                                         num_regression_neurons=config['num_regression_neurons'])
         model.load_state_dict(torch.load(config['path_to_weights']))
         # cut off last two layers
         model = torch.nn.Sequential(*list(model.children())[:-2])
@@ -108,7 +108,7 @@ def initialize_model_and_preprocessing_fucntions(config)->Tuple[torch.nn.Module,
                                    EfficientNet_image_preprocessor()]
     elif config['model_type']=='ViT_b_16':
         model = Modified_ViT_B_16(embeddings_layer_neurons=256, num_classes=config['num_classes'],
-                                  num_regression_neurons=2)
+                                  num_regression_neurons=config['num_regression_neurons'])
         model.load_state_dict(torch.load(config['path_to_weights']))
         # cut off last two layers
         model = torch.nn.Sequential(*list(model.children())[:-2])
@@ -117,14 +117,14 @@ def initialize_model_and_preprocessing_fucntions(config)->Tuple[torch.nn.Module,
     elif config['model_type']=='HRNet':
         model = Modified_HRNet(pretrained=True,
                                path_to_weights=config['path_hrnet_weights'],
-                               embeddings_layer_neurons=256, num_classes=config['num_classes'] if config['challenge'] == "Exp" else None,
-                               num_regression_neurons=2 if config['challenge'] == "VA" else None,
+                               embeddings_layer_neurons=256, num_classes=config['num_classes'],
+                               num_regression_neurons=config['num_regression_neurons'],
                                consider_only_upper_body=True)
+        if config['challenge'] == "VA": model.classifier = torch.nn.Identity()
         model.load_state_dict(torch.load(config['path_to_weights']))
         # cut off last two layers
         if config['challenge'] == "Exp": model.classifier = torch.nn.Identity()
         if config['challenge'] == "VA":
-            model.classifier = torch.nn.Identity()
             model.regression = torch.nn.Identity()
         # freeze model
         for param in model.parameters():
@@ -176,7 +176,7 @@ def extract_features(config):
 
 
 def main():
-    config_face_extraction_b1_exp = {
+    """config_face_extraction_b1_exp = {
         'challenge': "Exp",
         'Exp_train_labels_path': '/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/',
         'Exp_dev_labels_path': '/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/',
@@ -223,6 +223,7 @@ def main():
         'output_path_dev': "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/Exp_challenge/HRNet/HRNet_kinesics_features_dev.csv",
     }
 
+
     # check if the output path exists
     folder_b1 = os.path.dirname(config_face_extraction_b1_exp['output_path_train'])
     folder_vit = os.path.dirname(config_face_extraction_ViT_exp['output_path_train'])
@@ -234,7 +235,71 @@ def main():
     # extract features
     extract_features(config_pose_extraction_HRNet)
     extract_features(config_face_extraction_b1_exp)
-    extract_features(config_face_extraction_ViT_exp)
+    extract_features(config_face_extraction_ViT_exp)"""
+
+
+    # VA challenge
+    config_face_extraction_b1_VA = {
+        'challenge': "VA",
+        'Exp_train_labels_path': None,
+        'Exp_dev_labels_path': None,
+        'metafile_path': "/nfs/scratch/ddresvya/Data/preprocessed/faces/metadata.csv",
+        'VA_train_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/",
+        'VA_dev_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
+        'path_to_data': "/nfs/scratch/ddresvya/Data/preprocessed/face/",
+        'model_type': 'EfficientNet-B1',
+        'path_to_weights': "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/VA_challenge/AffWild2_static_va_best_b1.pth",
+        'num_classes': 8,
+        'num_regression_neurons':2,
+        'output_path_train': "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/VA_challenge/EfficientNet_b1/b1_facial_features_train.csv",
+        'output_path_dev': "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/VA_challenge/EfficientNet_b1/b1_facial_features_dev.csv",
+    }
+
+    config_face_extraction_b4_VA = {
+        'challenge': "VA",
+        'Exp_train_labels_path': None,
+        'Exp_dev_labels_path': None,
+        'metafile_path': "/nfs/scratch/ddresvya/Data/preprocessed/faces/metadata.csv",
+        'VA_train_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/",
+        'VA_dev_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
+        'path_to_data': "/nfs/scratch/ddresvya/Data/preprocessed/face/",
+        'model_type': 'EfficientNet-B4',
+        'path_to_weights': "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/VA_challenge/AffWild2_static_va_best_b4.pth",
+        'num_classes': 8,
+        'num_regression_neurons':2,
+        'output_path_train': "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/VA_challenge/EfficientNet_b4/b4_facial_features_train.csv",
+        'output_path_dev': "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/VA_challenge/EfficientNet_b4/b4_facial_features_dev.csv",
+    }
+
+    config_face_extraction_HRNet_VA = {
+        'challenge': "VA",
+        'Exp_train_labels_path': None,
+        'Exp_dev_labels_path': None,
+        'metafile_path': "/nfs/scratch/ddresvya/Data/preprocessed/pose/metadata.csv",
+        'VA_train_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/",
+        'VA_dev_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
+        'path_to_data': "/nfs/scratch/ddresvya/Data/preprocessed/pose/",
+        'model_type': 'HRNet',
+        'path_hrnet_weights': "/nfs/home/ddresvya/scripts/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
+        'path_to_weights': "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/VA_challenge/AffWild2_static_va_best_HRNet.pth",
+        'num_classes': 8,
+        'num_regression_neurons': 2,
+        'output_path_train': "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/VA_challenge/HRNet/HRNet_facial_features_train.csv",
+        'output_path_dev': "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/VA_challenge/HRNet/HRNet_facial_features_dev.csv",
+    }
+
+    # check if the output path exists
+    folder_b1 = os.path.dirname(config_face_extraction_b1_VA['output_path_train'])
+    folder_vit = os.path.dirname(config_face_extraction_b4_VA['output_path_train'])
+    folder_hrnet = os.path.dirname(config_face_extraction_HRNet_VA['output_path_train'])
+    # create dirs
+    os.makedirs(folder_b1, exist_ok=True)
+    os.makedirs(folder_vit, exist_ok=True)
+    os.makedirs(folder_hrnet, exist_ok=True)
+    # extract features
+    extract_features(config_face_extraction_HRNet_VA)
+    extract_features(config_face_extraction_b1_VA)
+    extract_features(config_face_extraction_b4_VA)
 
 
 
