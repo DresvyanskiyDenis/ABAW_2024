@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 from typing import Tuple, Optional, Dict
 import argparse
@@ -32,9 +33,7 @@ from src.video.training.dynamic_models.data_preparation import get_train_dev_dat
 from src.video.training.dynamic_models.evaluation_development import evaluate_on_dev_set_full_fps
 
 from src.video.training.dynamic_models.dynamic_models import UniModalTemporalModel_v1, UniModalTemporalModel_v2, \
-    UniModalTemporalModel_v3, UniModalTemporalModel_v4
-
-
+    UniModalTemporalModel_v3, UniModalTemporalModel_v4, UniModalTemporalModel_v5
 
 
 def initialize_model(model_type: str, input_shape: Tuple[int, int],
@@ -60,6 +59,8 @@ def initialize_model(model_type: str, input_shape: Tuple[int, int],
         model = UniModalTemporalModel_v3(input_shape=input_shape, num_classes=num_classes, num_regression_neurons=num_regression_neurons)
     elif model_type == "dynamic_v4":
         model = UniModalTemporalModel_v4(input_shape=input_shape, num_classes=num_classes, num_regression_neurons=num_regression_neurons)
+    elif model_type == "dynamic_v5":
+        model = UniModalTemporalModel_v5(input_shape=input_shape, num_classes=num_classes, num_regression_neurons=num_regression_neurons)
     else:
         raise ValueError(f"Unknown model type: {model_type}")
     # print number of model aprameters
@@ -221,6 +222,14 @@ def main(path_to_config, **params):
     config['video_to_fps_dict'] = video_to_fps
     config['feature_columns'] = feature_columns
     config['labels_columns'] = labels_columns
+    # fixate the seed
+    random.seed(config['splitting_seed'])
+    os.environ['PYTHONHASHSEED'] = str(config['splitting_seed'])
+    np.random.seed(config['splitting_seed'])
+    torch.manual_seed(config['splitting_seed'])
+    torch.cuda.manual_seed(config['splitting_seed'])
+    torch.backends.cudnn.deterministic = True
+
     # get data loaders
     if config['challenge'] == 'Exp':
         train_loader, dev_loader, class_weights = get_train_dev_dataloaders(config, get_class_weights=True)
@@ -244,7 +253,7 @@ if __name__ == "__main__":
     parser.add_argument('--window_size', '-w', type=int, help='Window size in frames (FPS=5)', required=True)
     args = parser.parse_args()
     # run main script with passed args
-    main(args.path_to_config_file, window_size=args.window_size, stride=args.window_size//5, challenge=args.challenge,
+    main(args.path_to_config_file, window_size=args.window_size, stride=args.window_size*2//5, challenge=args.challenge,
          model_type=args.model_type)
     # clear RAM
     gc.collect()
