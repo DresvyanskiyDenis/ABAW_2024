@@ -163,6 +163,10 @@ def initialize_model_and_preprocessing_fucntions(config)->Tuple[torch.nn.Module,
 def extract_features(config):
     # load train and dev data
     train, dev = load_labels_with_frame_paths(config)
+    # rename columns
+    if config["challenge"] == "Exp":
+        train.rename(columns={i: f"category_{i}" for i in range(8)}, inplace=True)
+        dev.rename(columns={i: f"category_{i}" for i in range(8)}, inplace=True)
     # initialize model and preprocessing functions
     extractor_model, preprocessing_functions = initialize_model_and_preprocessing_fucntions(config)
     # initialize embeddings extractor
@@ -170,9 +174,11 @@ def extract_features(config):
                                                output_shape=256)
     # extract embeddings
     embeddings_extractor.extract_embeddings(train, output_path=config['output_path_train'],
-                                                               batch_size=130, num_workers=4, verbose=True)
+                                            batch_size=130, num_workers=4, verbose=True,
+                                            labels_columns=config['labels_columns'])
     embeddings_extractor.extract_embeddings(dev, output_path=config['output_path_dev'],
-                                                                batch_size=130, num_workers=4, verbose=True)
+                                            batch_size=130, num_workers=4, verbose=True,
+                                            labels_columns=config['labels_columns'])
 
 
 
@@ -186,6 +192,7 @@ def main():
         'metafile_path': "/nfs/scratch/ddresvya/Data/preprocessed/faces/metadata.csv",
         'va_train_labels_path': None,
         'va_dev_labels_path': None,
+        'labels_columns': [f"category_{i}" for i in range(8)],
         'path_to_data': "/nfs/scratch/ddresvya/Data/preprocessed/faces/",
         'model_type': 'EfficientNet-B1',
         'path_to_weights': "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/Exp_challenge/AffWild2_static_exp_best_B1.pth",
@@ -202,6 +209,7 @@ def main():
         'metafile_path': "/nfs/scratch/ddresvya/Data/preprocessed/faces/metadata.csv",
         'va_train_labels_path': None,
         'va_dev_labels_path': None,
+        'labels_columns': [f"category_{i}" for i in range(8)],
         'path_to_data': "/nfs/scratch/ddresvya/Data/preprocessed/faces/",
         'model_type': 'ViT_b_16',
         'path_to_weights': "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/Exp_challenge/AffWilf2_static_exp_best_ViT.pth",
@@ -219,6 +227,7 @@ def main():
         'metafile_path': "/nfs/scratch/ddresvya/Data/preprocessed/pose/metadata.csv",
         'va_train_labels_path': None,
         'va_dev_labels_path': None,
+        'labels_columns': [f"category_{i}" for i in range(8)],
         'path_to_data': "/nfs/scratch/ddresvya/Data/preprocessed/pose/",
         'model_type': 'HRNet',
         'path_hrnet_weights': "/nfs/home/ddresvya/scripts/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
@@ -254,6 +263,7 @@ def main():
         'VA_train_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/",
         'VA_dev_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
         'path_to_data': "/nfs/scratch/ddresvya/Data/preprocessed/face/",
+        'labels_columns': ['arousal', 'valence'],
         'model_type': 'EfficientNet-B1',
         'path_to_weights': "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/VA_challenge/AffWild2_static_va_best_b1.pth",
         'num_classes': 8,
@@ -270,6 +280,7 @@ def main():
         'VA_train_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/",
         'VA_dev_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
         'path_to_data': "/nfs/scratch/ddresvya/Data/preprocessed/face/",
+        'labels_columns': ['arousal', 'valence'],
         'model_type': 'EfficientNet-B4',
         'path_to_weights': "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/VA_challenge/AffWild2_static_va_best_b4.pth",
         'num_classes': 8,
@@ -286,6 +297,7 @@ def main():
         'VA_train_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/",
         'VA_dev_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
         'path_to_data': "/nfs/scratch/ddresvya/Data/preprocessed/pose/",
+        'labels_columns': ['arousal', 'valence'],
         'model_type': 'HRNet',
         'path_hrnet_weights': "/nfs/home/ddresvya/scripts/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
         'path_to_weights': "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/VA_challenge/AffWild2_static_va_best_HRNet.pth",
@@ -304,8 +316,8 @@ def main():
     os.makedirs(folder_vit, exist_ok=True)
     os.makedirs(folder_hrnet, exist_ok=True)
     # extract features
-    extract_features(config_face_extraction_b4_VA)
     extract_features(config_face_extraction_HRNet_VA)
+    extract_features(config_face_extraction_b4_VA)
     extract_features(config_face_extraction_b1_VA)
 
 
