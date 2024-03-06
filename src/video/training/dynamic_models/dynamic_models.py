@@ -15,7 +15,9 @@ class UniModalTemporalModel_v1(torch.nn.Module):
         if self.num_classes is not None:
             self.classifier = torch.nn.Linear(in_features=self.num_features, out_features=self.num_classes)
         if self.num_regression_neurons is not None:
-            self.regressor = torch.nn.Linear(in_features=self.num_features, out_features=self.num_regression_neurons)
+            self.regressor = torch.nn.Sequential(
+                torch.nn.Linear(in_features=self.num_features, out_features=self.num_regression_neurons),
+                torch.nn.Tanh())
 
 
     def __initialize_temporal_part(self):
@@ -67,7 +69,9 @@ class UniModalTemporalModel_v2(torch.nn.Module):
         if self.num_classes is not None:
             self.classifier = torch.nn.Linear(in_features=self.num_features//4, out_features=self.num_classes)
         if self.num_regression_neurons is not None:
-            self.regressor = torch.nn.Linear(in_features=self.num_features//4, out_features=self.num_regression_neurons)
+            self.regressor = torch.nn.Sequential(
+                torch.nn.Linear(in_features=self.num_features, out_features=self.num_regression_neurons),
+                torch.nn.Tanh())
 
 
     def __initialize_temporal_part(self):
@@ -137,7 +141,9 @@ class UniModalTemporalModel_v3(torch.nn.Module):
         if self.num_classes is not None:
             self.classifier = torch.nn.Linear(in_features=self.num_features, out_features=self.num_classes)
         if self.num_regression_neurons is not None:
-            self.regressor = torch.nn.Linear(in_features=self.num_features, out_features=self.num_regression_neurons)
+            self.regressor = torch.nn.Sequential(
+                torch.nn.Linear(in_features=self.num_features, out_features=self.num_regression_neurons),
+                torch.nn.Tanh())
 
 
     def __initialize_temporal_part(self):
@@ -171,9 +177,11 @@ class UniModalTemporalModel_v4(torch.nn.Module):
         self.__initialize_temporal_part()
 
         if self.num_classes is not None:
-            self.classifier = torch.nn.Linear(in_features=self.num_features, out_features=self.num_classes)
+            self.classifier = torch.nn.Linear(in_features=self.num_features//2, out_features=self.num_classes)
         if self.num_regression_neurons is not None:
-            self.regressor = torch.nn.Linear(in_features=self.num_features, out_features=self.num_regression_neurons)
+            self.regressor = torch.nn.Sequential(
+                torch.nn.Linear(in_features=self.num_features, out_features=self.num_regression_neurons),
+                torch.nn.Tanh())
 
 
     def __initialize_temporal_part(self):
