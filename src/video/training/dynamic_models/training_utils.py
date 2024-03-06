@@ -29,7 +29,7 @@ def train_step(model: torch.nn.Module, criterion: torch.nn.Module,
         inputs = inputs[0]
     outputs = model(inputs) # output is either Exp:(batch_size, num_timesteps, num_classes) or VA:(batch_size, num_timesteps, 2)
     # calculating criterions
-    # CCC_loss in loss.py is not correctly implemented. TODO: correct it.
+
     loss = criterion(outputs, ground_truths)
     # clear RAM from unused variables
     del outputs, ground_truths

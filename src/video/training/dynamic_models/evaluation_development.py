@@ -223,6 +223,9 @@ def evaluate_on_dev_set_full_fps(dev_set_full_fps:Dict[str, pd.DataFrame], dev_s
     elif labels_type == 'VA':
         valence_result = np.array([valence for valence, _ in result.values()]).mean()
         arousal_result = np.array([arousal for _, arousal in result.values()]).mean()
+        # if valence CCC or arousal CCC is nan, than set it to 0
+        if np.isnan(valence_result): valence_result = 0.0
+        if np.isnan(arousal_result): arousal_result = 0.0
         result = {'val_CCC_V':valence_result,
                   'val_CCC_A':arousal_result}
     return result

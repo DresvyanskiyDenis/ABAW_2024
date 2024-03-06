@@ -71,13 +71,15 @@ class VALoss(nn.Module):
         """Computes VA loss
 
         Args:
-            x (Tensor): input tensor with shapes (n, 2); 0 - valence, 1 - arousal
-            y (Tensor): target tensor with shapes (n, 2); 0 - valence, 1 - arousal
+            x (Tensor): input tensor with shapes (batch_size, n, 2); 0 - valence, 1 - arousal
+            y (Tensor): target tensor with shapes (batch_size, n, 2); 0 - valence, 1 - arousal
 
         Returns:
             Tensor: VA loss value
         """
-        loss = self.alpha * self.ccc(x[:, 0], y[:, 0]) + self.beta * self.ccc(x[:, 1], y[:, 1])
+        losses = [self.alpha * self.ccc(x[i, :, 0], y[i, :, 0]) + self.beta * self.ccc(x[i, :, 1], y[i, :, 1]) for i in
+                  range(x.size(0))]
+        loss = torch.mean(torch.stack(losses))
         return loss
 
 
