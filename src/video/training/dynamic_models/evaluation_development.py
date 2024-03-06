@@ -181,7 +181,7 @@ def evaluate_on_dev_set_full_fps(dev_set_full_fps:Dict[str, pd.DataFrame], dev_s
     # go over video names and evaluate the model
     for video_name in video_names:
         # cut on windows the resampled video
-        windows = __cut_video_on_windows(dev_set_resampled[video_name], window_size=window_size, stride=window_size//5)
+        windows = __cut_video_on_windows(dev_set_resampled[video_name], window_size=window_size, stride=window_size*2//5)
         predictions = []
         for window_idx in range(0, len(windows), batch_size):
             # extract the batch of windows
@@ -216,6 +216,9 @@ def evaluate_on_dev_set_full_fps(dev_set_full_fps:Dict[str, pd.DataFrame], dev_s
         elif labels_type == 'VA':
             valence = np_concordance_correlation_coefficient(ground_truth[:, 0], predictions[:, 0])
             arousal = np_concordance_correlation_coefficient(ground_truth[:, 1], predictions[:, 1])
+            # if valence or arousal is nan, than set it to 0.0
+            if np.isnan(valence): valence = 0.0
+            if np.isnan(arousal): arousal = 0.0
             result[video_name] = (valence, arousal)
     # get averaged result
     if labels_type == 'Exp':
@@ -223,9 +226,6 @@ def evaluate_on_dev_set_full_fps(dev_set_full_fps:Dict[str, pd.DataFrame], dev_s
     elif labels_type == 'VA':
         valence_result = np.array([valence for valence, _ in result.values()]).mean()
         arousal_result = np.array([arousal for _, arousal in result.values()]).mean()
-        # if valence CCC or arousal CCC is nan, than set it to 0
-        if np.isnan(valence_result): valence_result = 0.0
-        if np.isnan(arousal_result): arousal_result = 0.0
         result = {'val_CCC_V':valence_result,
                   'val_CCC_A':arousal_result}
     return result
