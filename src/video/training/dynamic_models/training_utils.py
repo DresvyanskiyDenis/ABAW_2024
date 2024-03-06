@@ -29,8 +29,11 @@ def train_step(model: torch.nn.Module, criterion: torch.nn.Module,
         inputs = inputs[0]
     outputs = model(inputs) # output is either Exp:(batch_size, num_timesteps, num_classes) or VA:(batch_size, num_timesteps, 2)
     # calculating criterions
-
+    #print("predicted classes: ", outputs[0, :, 0].detach().cpu().numpy())
+    #print("labels: ", ground_truths[0, :, 0].detach().cpu().numpy())
     loss = criterion(outputs, ground_truths)
+    #print("Calculated loss: ", loss.item())
+    #print("----------------------------------")
     # clear RAM from unused variables
     del outputs, ground_truths
     return [loss]
