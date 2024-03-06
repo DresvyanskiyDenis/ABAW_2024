@@ -77,9 +77,14 @@ class VALoss(nn.Module):
         Returns:
             Tensor: VA loss value
         """
-        losses = [self.alpha * self.ccc(x[i, :, 0], y[i, :, 0]) + self.beta * self.ccc(x[i, :, 1], y[i, :, 1]) for i in
-                  range(x.size(0))]
-        loss = torch.mean(torch.stack(losses))
+        #losses = [self.alpha * self.ccc(x[i, :, 0], y[i, :, 0]) + self.beta * self.ccc(x[i, :, 1], y[i, :, 1]) for i in
+        #          range(x.size(0))]
+        #loss = torch.mean(torch.stack(losses))
+        # resize x to (batch_size * n, 2) and y to (batch_size * n, 2)
+        x = x.view(-1, 2)
+        y = y.view(-1, 2)
+        #loss = self.alpha * self.ccc(x[:, :, 0], y[:, :, 0]) + self.beta * self.ccc(x[:, :, 1], y[:, :, 1])
+        loss = self.alpha * self.ccc(x[:, 0], y[:, 0]) + self.beta * self.ccc(x[:, 1], y[:, 1])
         return loss
 
 
