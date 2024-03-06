@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import pandas as pd
 import torch
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from tqdm import tqdm
 
 from pytorch_utils.data_loaders.TemporalDataLoader import TemporalDataLoader
@@ -37,129 +38,19 @@ def generate_fps_file(path_to_videos:str, output_path:str)->None:
         pickle.dump(fps_dict, f)
 
 
-def convert_categories_to_on_hot(df: pd.DataFrame) -> pd.DataFrame:
-    """ Converts the categories to one-hot vectors preserving the np.Nans.
-
-    :param df: pd.DataFrame
-        The df with the 'category' column
-    :return: pd.DataFrame
-        The df with the one-hot vectors. They will be concatenated to the original df. The 'category' column will be
-        deleted and the one-hot vectors will be called 'category_0', 'category_1', ... '
-    """
-    # create one-hot vectors for categories
-    one_hot = pd.get_dummies(df["category"])
-    # apply mask to one-hot vectors so that all np.Nans are in the same rows
-    mask = df["category"].isna()
-    one_hot[mask] = np.NaN
-    # concatenate one-hot vectors to the original df
-    df = pd.concat([df, one_hot], axis=1)
-    # delete the 'category' column
-    df.drop(columns=["category"], inplace=True)
-    # rename one-hot vectors using int values
-    df.rename(columns={col: f"category_{int(col)}" for col in one_hot.columns}, inplace=True)
-    # for those columns, change the type to int
-    for col in df.columns:
-        if "category" in col:
-            df[col] = df[col].astype(np.float32)
-    return df
-
-
-
-
-def load_labels(config:dict)->Tuple[pd.DataFrame, pd.DataFrame]:
-    """ Loads train and dev labels from the provided paths
-
-    :param config: dict
-        Dictionary with configuration parameters. It should contain the following keys:
-        - exp_train_labels_path: str, path to the expression part of the train labels
-        - exp_dev_labels_path: str, path to the expression part of the dev labels
-        - va_train_labels_path: str, path to the VA part of the train labels
-        - va_dev_labels_path: str, path to the VA part of the dev labels
-        - metafile_path: str, path to the metafile (of extracted facial frames or pose frames)
-        - path_to_data: str, path to the folder with frames
-    :return: Tuple[pd.DataFrame, pd.DataFrame]
-        Dataframes with train and dev labels
-    """
-    if config['challenge'] == "Exp":
-        train_labels, dev_labels = load_train_dev_AffWild2_labels_with_frame_paths(
-            paths_to_labels=(config['exp_train_labels_path'], config['exp_dev_labels_path']),
-            path_to_metadata=config['metafile_path'],
-            challenge="Exp")  # pattern: Dict[filename: frames_with_labels] -> Dict[str, pd.DataFrame]
-    elif config['challenge'] == "VA":
-        train_labels, dev_labels = load_train_dev_AffWild2_labels_with_frame_paths(
-            paths_to_labels=(config['va_train_labels_path'], config['va_dev_labels_path']),
-            path_to_metadata=config['metafile_path'],
-            challenge="VA")
-    else:
-        raise ValueError("The challenge should be either 'Exp' or 'VA'.")
-
-    # concat all train labels and dev labels
-    train_labels = pd.concat([value for key, value in train_labels.items()], axis=0)
-    dev_labels = pd.concat([value for key, value in dev_labels.items()], axis=0)
-    # for Exp challenge, delete all -1 values in the "category" column
-    if config['challenge'] == "Exp":
-        train_labels = train_labels[train_labels["category"] != -1]
-        dev_labels = dev_labels[dev_labels["category"] != -1]
-    # for VA challenge, delete all values that are not in the range -1<=x<=1
-    if config['challenge']== "VA":
-        # keep only the frames with arousal and valence -1<=x<=1
-        train_labels = train_labels[(train_labels["valence"] >= -1) & (train_labels["valence"] <= 1) &
-                                    (train_labels["arousal"] >= -1) & (train_labels["arousal"] <= 1)]
-        dev_labels = dev_labels[(dev_labels["valence"] >= -1) & (dev_labels["valence"] <= 1) &
-                                (dev_labels["arousal"] >= -1) & (dev_labels["arousal"] <= 1)]
-    # change columns names for further work
-    train_labels.rename(columns={"path_to_frame": "path"}, inplace=True)
-    dev_labels.rename(columns={"path_to_frame": "path"}, inplace=True)
-    # convert categories to one-hot vectors
-    if config['challenge'] == "Exp":
-        train_labels = convert_categories_to_on_hot(train_labels)
-        dev_labels = convert_categories_to_on_hot(dev_labels)
-    # change absolute paths to relative one up to the second directory + change slashes to the ones that current system uses
-    train_labels["path"] = train_labels["path"].apply(lambda x: str(os.path.sep).join(x.split("/")[-2:]))
-    dev_labels["path"] = dev_labels["path"].apply(lambda x: str(os.path.sep).join(x.split("/")[-2:]))
-    # add config['path_to_data'] to the paths
-    train_labels["path"] = config['path_to_data'] + train_labels["path"]
-    dev_labels["path"] = config['path_to_data'] + dev_labels["path"]
-    return train_labels, dev_labels
-
-
-
-
-
 def load_train_dev(config)-> Tuple[pd.DataFrame, pd.DataFrame]:
-    """ Loads train and dev data from the provided paths and prepares data for cutting.
-    Also, combines data with corresponding labels
-
-    :param config: dict
-        Dictionary with configuration parameters. It should contain the following keys:
-        - train_embeddings: str, path to the train embeddings file
-        - dev_embeddings: str, path to the dev embeddings file
-        - exp_train_labels_path: str, path to the expression part of the train labels
-        - exp_dev_labels_path: str, path to the expression part of the dev labels
-        - va_train_labels_path: str, path to the VA part of the train labels
-        - va_dev_labels_path: str, path to the VA part of the dev labels
-        - metafile_path: str, path to the metafile (of extracted facial frames or pose frames)
-        - path_to_data: str, path to the folder with frames
-    :return: Tuple[pd.DataFrame, pd.DataFrame]
-        Dataframes with train and dev data (concatenated with labels)
-    """
     # load train and dev data
     train = pd.read_csv(config['train_embeddings'])
     dev = pd.read_csv(config['dev_embeddings'])
-    # load labels
-    train_labels, dev_labels = load_labels(config)
-    # combine data with labels based on the path
-    train = pd.merge(train, train_labels, on="path")
-    dev = pd.merge(dev, dev_labels, on="path")
-    # delete all columns with _y and change name of the columns with _x
-    train.drop([col for col in train.columns if '_y' in col], axis=1, inplace=True)
-    dev.drop([col for col in dev.columns if '_y' in col], axis=1, inplace=True)
-    train.rename(columns={col: col.split("_")[0] for col in train.columns if '_x' in col}, inplace=True)
-    dev.rename(columns={col: col.split("_")[0] for col in dev.columns if '_x' in col}, inplace=True)
-    # reorder columns. First columns are columns from labels, then embeddings
-    columns = list(train_labels.columns) + [col for col in train if col not in train_labels.columns]
-    train = train[columns]
-    dev = dev[columns]
+    # normalization
+    if config['normalization'] == True:
+        # get idx of column "embedding_0"
+        normalization_idx = train.columns.get_loc("embedding_0")
+        # normalize the data
+        scaler = MinMaxScaler()
+        scaler = scaler.fit(train.iloc[:, normalization_idx:])
+        train.iloc[:, normalization_idx:] = scaler.transform(train.iloc[:, normalization_idx:])
+        dev.iloc[:, normalization_idx:] = scaler.transform(dev.iloc[:, normalization_idx:])
     return train, dev
 
 
@@ -224,13 +115,13 @@ def construct_data_loaders(train_videos:Dict[str, pd.DataFrame], dev_videos:Dict
     train_loader = TemporalEmbeddingsLoader(embeddings_with_labels=train_videos, window_size=config['window_size'],
                                             stride=config['stride'], consider_timestamps=False,
                                             feature_columns=feature_columns, label_columns=labels_columns,
-                                            shuffle = True)
+                                            shuffle = False) # TODO: make shuffle True
     dev_loader = TemporalEmbeddingsLoader(embeddings_with_labels=dev_videos, window_size=config['window_size'],
                                             stride=config['stride'], consider_timestamps=False,
                                             feature_columns=feature_columns, label_columns=labels_columns)
     # create torch.utils.data.DataLoader
     train_loader = torch.utils.data.DataLoader(train_loader, batch_size=config['batch_size'], num_workers=config['num_workers'],
-                                               drop_last=True,shuffle=True)
+                                               drop_last=True,shuffle=False) # TODO: make shuffle True
     dev_loader = torch.utils.data.DataLoader(dev_loader, batch_size=config['batch_size'], num_workers=config['num_workers'],
                                                shuffle=False)
     return train_loader, dev_loader
