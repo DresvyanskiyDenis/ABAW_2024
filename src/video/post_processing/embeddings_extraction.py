@@ -185,6 +185,7 @@ def extract_features(config):
 
 
 def main():
+    print("With timestamps")
     config_face_extraction_b1_exp = {
         'challenge': "Exp",
         'Exp_train_labels_path': '/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/',
@@ -192,7 +193,7 @@ def main():
         'metafile_path': "/nfs/scratch/ddresvya/Data/preprocessed/faces/metadata.csv",
         'va_train_labels_path': None,
         'va_dev_labels_path': None,
-        'labels_columns': [f"category_{i}" for i in range(8)],
+        'labels_columns': ['timestamp', 'frame_num']+[f"category_{i}" for i in range(8)],
         'path_to_data': "/nfs/scratch/ddresvya/Data/preprocessed/faces/",
         'model_type': 'EfficientNet-B1',
         'path_to_weights': "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/Exp_challenge/AffWild2_static_exp_best_B1.pth",
@@ -209,7 +210,7 @@ def main():
         'metafile_path': "/nfs/scratch/ddresvya/Data/preprocessed/faces/metadata.csv",
         'va_train_labels_path': None,
         'va_dev_labels_path': None,
-        'labels_columns': [f"category_{i}" for i in range(8)],
+        'labels_columns': ['timestamp', 'frame_num']+[f"category_{i}" for i in range(8)],
         'path_to_data': "/nfs/scratch/ddresvya/Data/preprocessed/faces/",
         'model_type': 'ViT_b_16',
         'path_to_weights': "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/Exp_challenge/AffWilf2_static_exp_best_ViT.pth",
@@ -227,7 +228,7 @@ def main():
         'metafile_path': "/nfs/scratch/ddresvya/Data/preprocessed/pose/metadata.csv",
         'va_train_labels_path': None,
         'va_dev_labels_path': None,
-        'labels_columns': [f"category_{i}" for i in range(8)],
+        'labels_columns': ['timestamp', 'frame_num']+[f"category_{i}" for i in range(8)],
         'path_to_data': "/nfs/scratch/ddresvya/Data/preprocessed/pose/",
         'model_type': 'HRNet',
         'path_hrnet_weights': "/nfs/home/ddresvya/scripts/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
@@ -263,7 +264,7 @@ def main():
         'VA_train_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/",
         'VA_dev_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
         'path_to_data': "/nfs/scratch/ddresvya/Data/preprocessed/face/",
-        'labels_columns': ['arousal', 'valence'],
+        'labels_columns': ['timestamp', 'frame_num']+['arousal', 'valence'],
         'model_type': 'EfficientNet-B1',
         'path_to_weights': "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/VA_challenge/AffWild2_static_va_best_b1.pth",
         'num_classes': 8,
@@ -280,7 +281,7 @@ def main():
         'VA_train_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/",
         'VA_dev_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
         'path_to_data': "/nfs/scratch/ddresvya/Data/preprocessed/face/",
-        'labels_columns': ['arousal', 'valence'],
+        'labels_columns': ['timestamp', 'frame_num']+['arousal', 'valence'],
         'model_type': 'EfficientNet-B4',
         'path_to_weights': "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/VA_challenge/AffWild2_static_va_best_b4.pth",
         'num_classes': 8,
@@ -297,7 +298,7 @@ def main():
         'VA_train_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/",
         'VA_dev_labels_path': "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
         'path_to_data': "/nfs/scratch/ddresvya/Data/preprocessed/pose/",
-        'labels_columns': ['arousal', 'valence'],
+        'labels_columns': ['timestamp', 'frame_num']+['arousal', 'valence'],
         'model_type': 'HRNet',
         'path_hrnet_weights': "/nfs/home/ddresvya/scripts/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
         'path_to_weights': "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/VA_challenge/AffWild2_static_va_best_HRNet.pth",
