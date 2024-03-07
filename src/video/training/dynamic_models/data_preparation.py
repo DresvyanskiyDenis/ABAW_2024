@@ -42,15 +42,21 @@ def load_train_dev(config)-> Tuple[pd.DataFrame, pd.DataFrame]:
     # load train and dev data
     train = pd.read_csv(config['train_embeddings'])
     dev = pd.read_csv(config['dev_embeddings'])
+    # round timestamps to two decimal places
+    train['timestamp'] = train['timestamp'].apply(lambda x: round(x, 2))
+    dev['timestamp'] = dev['timestamp'].apply(lambda x: round(x, 2))
+    # the same for num_frame
+    train['frame_num'] = train['frame_num'].apply(lambda x: round(x, 2))
+    dev['frame_num'] = dev['frame_num'].apply(lambda x: round(x, 2))
     # normalization
     if config['normalization'] == True:
         # get idx of column "embedding_0"
-        normalization_idx = train.columns.get_loc("embedding_0")
+        embeddings_columns = [f'embedding_{i}' for i in range(256)]
         # normalize the data
         scaler = MinMaxScaler()
-        scaler = scaler.fit(train.iloc[:, normalization_idx:])
-        train.iloc[:, normalization_idx:] = scaler.transform(train.iloc[:, normalization_idx:])
-        dev.iloc[:, normalization_idx:] = scaler.transform(dev.iloc[:, normalization_idx:])
+        scaler = scaler.fit(train[embeddings_columns])
+        train[embeddings_columns] = scaler.transform(train[embeddings_columns])
+        dev[embeddings_columns] = scaler.transform(dev[embeddings_columns])
     return train, dev
 
 

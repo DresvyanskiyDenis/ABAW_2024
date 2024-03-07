@@ -32,7 +32,7 @@ def __interpolate_to_100_fps(predictions:np.ndarray, predictions_timesteps:np.nd
     # convert index to TimeDeltaIndex
     predictions_df.index = pd.to_timedelta(predictions_df.index, unit='ms')
     # Resample the DataFrame to 100 FPS (0.01 seconds interval)
-    predictions_df = predictions_df.resample('10L').asfreq()
+    predictions_df = predictions_df.resample('10ms').asfreq()
 
     # Interpolate the missing values
     predictions_df = predictions_df.interpolate(method='linear')
