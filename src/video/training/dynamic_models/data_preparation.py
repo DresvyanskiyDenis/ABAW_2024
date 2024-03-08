@@ -49,11 +49,14 @@ def load_train_dev(config)-> Tuple[pd.DataFrame, pd.DataFrame]:
     train['frame_num'] = train['frame_num'].apply(lambda x: round(x, 2))
     dev['frame_num'] = dev['frame_num'].apply(lambda x: round(x, 2))
     # normalization
-    if config['normalization'] == True:
+    if config['normalization'] is not None and config['normalization'] in ["minmax", "standard"]:
         # get idx of column "embedding_0"
         embeddings_columns = [f'embedding_{i}' for i in range(256)]
         # normalize the data
-        scaler = MinMaxScaler()
+        if config['normalization'] == "minmax":
+            scaler = MinMaxScaler()
+        elif config['normalization'] == "standard":
+            scaler = StandardScaler()
         scaler = scaler.fit(train[embeddings_columns])
         train[embeddings_columns] = scaler.transform(train[embeddings_columns])
         dev[embeddings_columns] = scaler.transform(dev[embeddings_columns])
@@ -121,13 +124,13 @@ def construct_data_loaders(train_videos:Dict[str, pd.DataFrame], dev_videos:Dict
     train_loader = TemporalEmbeddingsLoader(embeddings_with_labels=train_videos, window_size=config['window_size'],
                                             stride=config['stride'], consider_timestamps=False,
                                             feature_columns=feature_columns, label_columns=labels_columns,
-                                            shuffle = False) # TODO: make shuffle True
+                                            shuffle = False)
     dev_loader = TemporalEmbeddingsLoader(embeddings_with_labels=dev_videos, window_size=config['window_size'],
                                             stride=config['stride'], consider_timestamps=False,
                                             feature_columns=feature_columns, label_columns=labels_columns)
     # create torch.utils.data.DataLoader
     train_loader = torch.utils.data.DataLoader(train_loader, batch_size=config['batch_size'], num_workers=config['num_workers'],
-                                               drop_last=True,shuffle=False) # TODO: make shuffle True
+                                               drop_last=True,shuffle=True)
     dev_loader = torch.utils.data.DataLoader(dev_loader, batch_size=config['batch_size'], num_workers=config['num_workers'],
                                                shuffle=False)
     return train_loader, dev_loader
@@ -165,6 +168,16 @@ def get_train_dev_dataloaders(config:dict, get_class_weights:Optional[bool]=Fals
     # separate data into video sequences
     train_video_sequences = separate_data_into_video_sequences(train, video_to_fps, config['common_fps'])
     dev_video_sequences = separate_data_into_video_sequences(dev, video_to_fps, config['common_fps'])
+    # apply per-video normalization if needed
+    if config['normalization'] in ["per-video-minmax", "per-video-standard"]:
+        for video_name in train_video_sequences.keys():
+            embedding_columns = [f'embedding_{i}' for i in range(256)]
+            scaler = StandardScaler() if config['normalization'] == "per-video-standard" else MinMaxScaler()
+            train_video_sequences[video_name][embedding_columns] = scaler.fit_transform(train_video_sequences[video_name][embedding_columns])
+        for video_name in dev_video_sequences.keys():
+            embedding_columns = [f'embedding_{i}' for i in range(256)]
+            scaler = StandardScaler() if config['normalization'] == "per-video-standard" else MinMaxScaler()
+            dev_video_sequences[video_name][embedding_columns] = scaler.fit_transform(dev_video_sequences[video_name][embedding_columns])
     # construct data loaders
     train_loader, dev_loader = construct_data_loaders(train_video_sequences, dev_video_sequences, config)
     if get_class_weights:
