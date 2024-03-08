@@ -140,7 +140,8 @@ def train_model(train_generator: torch.utils.data.DataLoader,
         train_loss = train_epoch(model, train_generator, optimizer, criterion, device, print_step=100,
                                  accumulate_gradients=config.accumulate_gradients,
                                  batch_wise_lr_scheduller=lr_scheduller if config.lr_scheduller == 'Warmup_cyclic' else None,
-                                 loss_multiplication_factor=config.loss_multiplication_factor)
+                                 loss_multiplication_factor=config.loss_multiplication_factor,
+                                 gradient_clipping_value=config.gradient_clipping)
         print("Train loss: %.10f" % train_loss)
         # validate the model
         model.eval()

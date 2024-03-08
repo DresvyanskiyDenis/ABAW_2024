@@ -44,7 +44,8 @@ def train_epoch(model: torch.nn.Module, train_generator: torch.utils.data.DataLo
                 device: torch.device, print_step: Optional[int] = 100,
                 accumulate_gradients: Optional[int] = 1,
                 batch_wise_lr_scheduller: Optional[object] = None,
-                loss_multiplication_factor: Optional[float] = None) -> float:
+                loss_multiplication_factor: Optional[float] = None,
+                gradient_clipping_value: Optional[float]=None) -> float:
     # extract criterions and their weights
     running_loss = 0.0
     total_loss = 0.0
@@ -69,6 +70,8 @@ def train_epoch(model: torch.nn.Module, train_generator: torch.utils.data.DataLo
             if loss_multiplication_factor is not None:
                 sum_losses = sum_losses * loss_multiplication_factor
             sum_losses.backward()
+            if gradient_clipping_value is not None:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=gradient_clipping_value, norm_type=2)
             # update weights if we have accumulated enough gradients
             if (i + 1) % accumulate_gradients == 0 or (i + 1 == len(train_generator)):
                 optimizer.step()
