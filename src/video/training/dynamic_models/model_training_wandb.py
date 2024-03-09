@@ -245,8 +245,7 @@ def main(path_to_config, **params):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        prog='ABAW dynamic uni-modal model training',
-        epilog='Parameters: path_to_config_file: str')
+        prog='ABAW dynamic uni-modal model training')
     # short name -p, full name --path_to_config_file
     parser.add_argument('--path_to_config_file', '-p', type=str, help='Path to the config file', required=True)
     parser.add_argument('--model_type', '-m', type=str, help='Type of the model. dynamic_v1, dynamic_v2, dynamic_v3, dynamic_v4', required=True)
@@ -255,7 +254,7 @@ if __name__ == "__main__":
     parser.add_argument('--normalization', '-n', type=str, help='Normalization type', required=True)
     args = parser.parse_args()
     # run main script with passed args
-    main(args.path_to_config_file, window_size=args.window_size, stride=args.window_size*2//5, challenge=args.challenge,
+    main(args.path_to_config_file, window_size=args.window_size, stride=args.window_size//args.window_size*2, challenge=args.challenge,
          model_type=args.model_type, normalization = args.normalization)
     # clear RAM
     gc.collect()

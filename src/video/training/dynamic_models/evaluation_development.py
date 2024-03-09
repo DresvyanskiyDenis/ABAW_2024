@@ -70,10 +70,21 @@ def __cut_video_on_windows(video:pd.DataFrame, window_size:int, stride:int)->Lis
         return [video]
     # create list to store the windows
     windows = []
-    # go over the video and cut it on windows
+    # calculate the common frame_num_difference and the reference range of the window
+    frame_num_difference = video['frame_num'].diff().round(2).mode().values[0]
+    reference_range = np.round(frame_num_difference * (window_size-1), 2)
+    # go over the video and cut it on windows. We include only windows with the same range as the reference range
+    # (thus, only windows with the monotonically increasing timesteps are included in the result list)
     for i in range(0, len(video) - window_size, stride):
-        windows.append(video.iloc[i:i + window_size])
-    # last window is always overcut, we should change the last element of the list
+        window = video.iloc[i:i + window_size]
+        actual_range = np.round(window["frame_num"].iloc[-1] - window["frame_num"].iloc[0], 2)
+        if actual_range == reference_range:
+            windows.append(window)
+    # sometimes, there are no windows at all (because they are ultra short and most of the labels are missing)
+    # then, we will just take the last window
+    if len(windows) == 0:
+        windows.append(video.iloc[-window_size:])
+    # most of the times, the last window is not full, so we will replace it with the window that starts from -window_size
     windows[-1] = video.iloc[-window_size:]
     return windows
 
@@ -181,12 +192,12 @@ def evaluate_on_dev_set_full_fps(dev_set_full_fps:Dict[str, pd.DataFrame], dev_s
     # go over video names and evaluate the model
     for video_name in video_names:
         # cut on windows the resampled video
-        windows = __cut_video_on_windows(dev_set_resampled[video_name], window_size=window_size, stride=window_size*2//5)
+        windows = __cut_video_on_windows(dev_set_resampled[video_name], window_size=window_size, stride=1)
         predictions = []
         for window_idx in range(0, len(windows), batch_size):
             # extract the batch of windows
             batch_windows = windows[window_idx:window_idx + batch_size]
-            timesteps = np.stack([window['timestamp'].values for window in batch_windows])
+            timesteps = np.stack([window['timestep'].values for window in batch_windows])
             # extract features from the batch
             batch_windows = [torch.from_numpy(window[feature_columns].values) for window in batch_windows]
             batch_windows = torch.stack(batch_windows)
@@ -198,7 +209,7 @@ def evaluate_on_dev_set_full_fps(dev_set_full_fps:Dict[str, pd.DataFrame], dev_s
         prediction_timesteps, predictions = average_predictions_on_timesteps(predictions)
         # get ground truth
         ground_truth = dev_set_full_fps[video_name][labels_columns].values
-        ground_truth_timesteps = dev_set_full_fps[video_name]['timestamp'].values
+        ground_truth_timesteps = dev_set_full_fps[video_name]['timestep'].values
         ground_truth_fps = video_to_fps[video_name]
         # interpolate predictions to the 100 fps
         predictions, predictions_timesteps = __interpolate_to_100_fps(predictions, prediction_timesteps)

@@ -48,6 +48,9 @@ def load_train_dev(config)-> Tuple[pd.DataFrame, pd.DataFrame]:
     # the same for num_frame
     train['frame_num'] = train['frame_num'].apply(lambda x: round(x, 2))
     dev['frame_num'] = dev['frame_num'].apply(lambda x: round(x, 2))
+    # rename timestamp to timestep
+    train = train.rename(columns={"timestamp": "timestep"})
+    dev = dev.rename(columns={"timestamp": "timestep"})
     # normalization
     if config['normalization'] is not None and config['normalization'] in ["minmax", "standard"]:
         # get idx of column "embedding_0"
@@ -124,10 +127,12 @@ def construct_data_loaders(train_videos:Dict[str, pd.DataFrame], dev_videos:Dict
     train_loader = TemporalEmbeddingsLoader(embeddings_with_labels=train_videos, window_size=config['window_size'],
                                             stride=config['stride'], consider_timestamps=False,
                                             feature_columns=feature_columns, label_columns=labels_columns,
+                                            only_consecutive_windows=True,
                                             shuffle = False)
     dev_loader = TemporalEmbeddingsLoader(embeddings_with_labels=dev_videos, window_size=config['window_size'],
                                             stride=config['stride'], consider_timestamps=False,
-                                            feature_columns=feature_columns, label_columns=labels_columns)
+                                            feature_columns=feature_columns, label_columns=labels_columns,
+                                            only_consecutive_windows=True)
     # create torch.utils.data.DataLoader
     train_loader = torch.utils.data.DataLoader(train_loader, batch_size=config['batch_size'], num_workers=config['num_workers'],
                                                drop_last=True,shuffle=True)
