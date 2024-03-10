@@ -45,7 +45,8 @@ def train_epoch(model: torch.nn.Module, train_generator: torch.utils.data.DataLo
                 accumulate_gradients: Optional[int] = 1,
                 batch_wise_lr_scheduller: Optional[object] = None,
                 loss_multiplication_factor: Optional[float] = None,
-                gradient_clipping_value: Optional[float]=None) -> float:
+                gradient_clipping_value: Optional[float]=None,
+                downgrade_to_1_fps:Optional[bool]=None) -> float:
     # extract criterions and their weights
     running_loss = 0.0
     total_loss = 0.0
@@ -55,6 +56,10 @@ def train_epoch(model: torch.nn.Module, train_generator: torch.utils.data.DataLo
         inputs, labels = data  # labels: arousal, valence, one-hot encoded labels
         if not isinstance(inputs, list):
             inputs = [inputs]
+        # take every n-th timestep. However, in this case, we do not want to start from 0. Instead, we want to start from
+        # every_n_timestep parameter
+        if downgrade_to_1_fps is not None:
+            labels = labels[:, 4::5]
         # move data to device
         inputs = [inp.float().to(device) for inp in inputs]
         labels = labels.float().to(device)

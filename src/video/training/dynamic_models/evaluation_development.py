@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 import torch
 import numpy as np
@@ -57,7 +57,8 @@ def evaluate_on_dev_set_full_fps(dev_set_full_fps:Dict[str, pd.DataFrame], dev_s
                                  video_to_fps:Dict[str, float], model:torch.nn.Module, labels_type:str,
                                  feature_columns:List[str], labels_columns:List[str],
                                  window_size:int, device:torch.device,
-                                 batch_size:int=32)->Dict[str, float]:
+                                 batch_size:int=32,
+                                 downgrade_to_1_fps:Optional[bool]=None)->Dict[str, float]:
     # get unique video names
     video_names = list(dev_set_resampled.keys())
     # create predictions
@@ -70,7 +71,10 @@ def evaluate_on_dev_set_full_fps(dev_set_full_fps:Dict[str, pd.DataFrame], dev_s
         for window_idx in range(0, len(windows), batch_size):
             # extract the batch of windows
             batch_windows = windows[window_idx:window_idx + batch_size]
-            timesteps = np.stack([window['timestep'].values for window in batch_windows])
+            if downgrade_to_1_fps is not None:
+                timesteps = np.stack([window['timestep'].values[4::5] for window in batch_windows]) # TODO: you can make additional parameter
+            else:
+                timesteps = np.stack([window['timestep'].values for window in batch_windows])
             # extract features from the batch
             batch_windows = [torch.from_numpy(window[feature_columns].values) for window in batch_windows]
             batch_windows = torch.stack(batch_windows)

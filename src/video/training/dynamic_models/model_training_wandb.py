@@ -33,7 +33,8 @@ from src.video.training.dynamic_models.data_preparation import get_train_dev_dat
 from src.video.training.dynamic_models.evaluation_development import evaluate_on_dev_set_full_fps
 
 from src.video.training.dynamic_models.dynamic_models import UniModalTemporalModel_v1, UniModalTemporalModel_v2, \
-    UniModalTemporalModel_v3, UniModalTemporalModel_v4, UniModalTemporalModel_v5
+    UniModalTemporalModel_v3, UniModalTemporalModel_v4, UniModalTemporalModel_v5, UniModalTemporalModel_v6_1_fps, \
+    UniModalTemporalModel_v7_1_fps, UniModalTemporalModel_v8_1_fps
 
 
 def initialize_model(model_type: str, input_shape: Tuple[int, int],
@@ -61,6 +62,12 @@ def initialize_model(model_type: str, input_shape: Tuple[int, int],
         model = UniModalTemporalModel_v4(input_shape=input_shape, num_classes=num_classes, num_regression_neurons=num_regression_neurons)
     elif model_type == "dynamic_v5":
         model = UniModalTemporalModel_v5(input_shape=input_shape, num_classes=num_classes, num_regression_neurons=num_regression_neurons)
+    elif model_type == "dynamic_v6_1_fps":
+        model = UniModalTemporalModel_v6_1_fps(input_shape=input_shape, num_classes=num_classes, num_regression_neurons=num_regression_neurons)
+    elif model_type == "dynamic_v7_1_fps":
+        model = UniModalTemporalModel_v7_1_fps(input_shape=input_shape, num_classes=num_classes, num_regression_neurons=num_regression_neurons)
+    elif model_type == "dynamic_v8_1_fps":
+        model = UniModalTemporalModel_v8_1_fps(input_shape=input_shape, num_classes=num_classes, num_regression_neurons=num_regression_neurons)
     else:
         raise ValueError(f"Unknown model type: {model_type}")
     # print number of model aprameters
@@ -141,7 +148,8 @@ def train_model(train_generator: torch.utils.data.DataLoader,
                                  accumulate_gradients=config.accumulate_gradients,
                                  batch_wise_lr_scheduller=lr_scheduller if config.lr_scheduller == 'Warmup_cyclic' else None,
                                  loss_multiplication_factor=config.loss_multiplication_factor,
-                                 gradient_clipping_value=config.gradient_clipping)
+                                 gradient_clipping_value=config.gradient_clipping,
+                                 downgrade_to_1_fps=True if "1_fps" in config.model_type else False)
         print("Train loss: %.10f" % train_loss)
         # validate the model
         model.eval()
@@ -151,7 +159,8 @@ def train_model(train_generator: torch.utils.data.DataLoader,
                                  feature_columns=config.feature_columns,
                                  labels_columns=config.labels_columns,
                                  window_size=config.window_size, device=device,
-                                 batch_size=config.batch_size)
+                                 batch_size=config.batch_size,
+                                 downgrade_to_1_fps=True if "1_fps" in config.model_type else False)
         print(val_metrics)
 
         # update best val metrics got on validation set and log them using wandb # TODO: write separate function on updating wandb metrics
@@ -256,7 +265,6 @@ if __name__ == "__main__":
     # run main script with passed args
     main(args.path_to_config_file, window_size=args.window_size, stride=args.window_size//args.window_size*2, challenge=args.challenge,
          model_type=args.model_type, normalization = args.normalization)
-    # clear RAM
     gc.collect()
     torch.cuda.empty_cache()
 
