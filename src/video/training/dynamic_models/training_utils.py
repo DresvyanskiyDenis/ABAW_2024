@@ -58,7 +58,7 @@ def train_epoch(model: torch.nn.Module, train_generator: torch.utils.data.DataLo
             inputs = [inputs]
         # take every n-th timestep. However, in this case, we do not want to start from 0. Instead, we want to start from
         # every_n_timestep parameter
-        if downgrade_to_1_fps is not None:
+        if downgrade_to_1_fps is not False:
             labels = labels[:, 4::5]
         # move data to device
         inputs = [inp.float().to(device) for inp in inputs]

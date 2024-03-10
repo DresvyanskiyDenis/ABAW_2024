@@ -71,7 +71,7 @@ def evaluate_on_dev_set_full_fps(dev_set_full_fps:Dict[str, pd.DataFrame], dev_s
         for window_idx in range(0, len(windows), batch_size):
             # extract the batch of windows
             batch_windows = windows[window_idx:window_idx + batch_size]
-            if downgrade_to_1_fps is not None:
+            if downgrade_to_1_fps is not False:
                 timesteps = np.stack([window['timestep'].values[4::5] for window in batch_windows]) # TODO: you can make additional parameter
             else:
                 timesteps = np.stack([window['timestep'].values for window in batch_windows])
