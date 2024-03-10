@@ -151,7 +151,7 @@ def train_model(train_generator: torch.utils.data.DataLoader,
                                  feature_columns=config.feature_columns,
                                  labels_columns=config.labels_columns,
                                  window_size=config.window_size, device=device,
-                                 batch_size=config.batch_size, resampled_fps=config.common_fps)
+                                 batch_size=config.batch_size)
         print(val_metrics)
 
         # update best val metrics got on validation set and log them using wandb # TODO: write separate function on updating wandb metrics
