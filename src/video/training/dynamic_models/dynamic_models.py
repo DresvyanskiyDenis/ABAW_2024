@@ -81,7 +81,6 @@ class UniModalTemporalModel_v2(torch.nn.Module):
         self.third_temporal_part = torch.nn.ModuleList()
         # first part of the model
         self.first_temporal_part.append(Transformer_layer(input_dim=self.num_features, num_heads=8, dropout=0.1, positional_encoding=True))
-        self.first_temporal_part.append(Transformer_layer(input_dim=self.num_features, num_heads=8, dropout=0.1, positional_encoding=True))
         # reduction of feature dimension by 2
         self.feature_reduction_1 = torch.nn.Sequential(
             torch.nn.Conv1d(in_channels=self.num_features, out_channels=self.num_features //2, kernel_size=1, stride=1),
@@ -91,7 +90,6 @@ class UniModalTemporalModel_v2(torch.nn.Module):
         )
         # two more transformer layers
         self.second_temporal_part.append(Transformer_layer(input_dim=self.num_features//2, num_heads=8, dropout=0.1, positional_encoding=True))
-        self.second_temporal_part.append(Transformer_layer(input_dim=self.num_features//2, num_heads=8, dropout=0.1, positional_encoding=True))
 
         self.feature_reduction_2 = torch.nn.Sequential(
             torch.nn.Conv1d(in_channels=self.num_features//2, out_channels=self.num_features // 4, kernel_size=1, stride=1),
@@ -100,7 +98,6 @@ class UniModalTemporalModel_v2(torch.nn.Module):
             torch.nn.Dropout(p=0.1),
         )
         # two more transformer layers
-        self.third_temporal_part.append(Transformer_layer(input_dim=self.num_features//4, num_heads=4, dropout=0.1, positional_encoding=True))
         self.third_temporal_part.append(Transformer_layer(input_dim=self.num_features//4, num_heads=4, dropout=0.1, positional_encoding=True))
 
 
