@@ -25,8 +25,8 @@ class VisualFusionModel(torch.nn.Module):
     def forward(self, x1, x2):
         # x1 and x2 have the same shape: [batch_size, seq_len, num_features]
         # cross attention
-        x1_2 = self.cross_attention_1_2(x1)
-        x2_1 = self.cross_attention_2_1(x2)
+        x1_2 = self.cross_attention_1_2(query=x1, key=x2, value=x2)
+        x2_1 = self.cross_attention_2_1(query=x2, key=x1, value=x1)
         # pooling
         x1_2 = x1_2.permute(0, 2, 1)
         x2_1 = x2_1.permute(0, 2, 1)
