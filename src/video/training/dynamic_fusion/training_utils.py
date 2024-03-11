@@ -27,7 +27,8 @@ def train_step(model: torch.nn.Module, criterion: torch.nn.Module,
     # forward pass
     if len(inputs) == 1:
         inputs = inputs[0]
-    outputs = model(inputs) # output is either Exp:(batch_size, num_timesteps, num_classes) or VA:(batch_size, num_timesteps, 2)
+    outputs = model(*inputs)
+    outputs = outputs[0]
     # calculating criterions
     loss = criterion(outputs, ground_truths)
     # clear RAM from unused variables
@@ -49,9 +50,8 @@ def train_epoch(model: torch.nn.Module, train_generator: torch.utils.data.DataLo
     counter = 0
     for i, data in enumerate(train_generator):
         # get the inputs; data is a list of [inputs, labels]
-        inputs, labels = data  # labels: arousal, valence, one-hot encoded labels
-        if not isinstance(inputs, list):
-            inputs = [inputs]
+        input1, input2, labels = data  # labels: arousal, valence, one-hot encoded labels
+        inputs = [input1, input2]
         # take every n-th timestep. However, in this case, we do not want to start from 0. Instead, we want to start from
         # every_n_timestep parameter
         if downgrade_to_1_fps is not False:

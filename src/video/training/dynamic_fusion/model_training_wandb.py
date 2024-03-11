@@ -207,7 +207,7 @@ def main(path_to_config, **params):
     config.update(params)
     # load additional parameters to add to config
     feature_columns_mod1 = [f'facial_embedding_{i}' for i in range(256)]
-    feature_columns_mod2 = [f'pose_embedding_{i}' for i in range(256)]
+    feature_columns_mod2 = [f'kinesics_embedding_{i}' for i in range(256)]
     if config['challenge'] == 'Exp':
         labels_columns = [f'category_{i}' for i in range(config['num_classes'])]
     else:

@@ -82,7 +82,7 @@ def evaluate_on_dev_set_full_fps(dev_set_full_fps:Dict[str, pd.DataFrame], dev_s
             batch_windows2 = torch.stack(batch_windows2)
             batch_windows2 = batch_windows2.float().to(device)
             # get predictions
-            batch_predictions = model([batch_windows1, batch_windows2]).detach().cpu().numpy()
+            batch_predictions = model(batch_windows1, batch_windows2)[0].detach().cpu().numpy()
             predictions.append((timesteps, batch_predictions))
         # average predictions on timesteps
         prediction_timesteps, predictions = __average_predictions_on_timesteps(predictions)

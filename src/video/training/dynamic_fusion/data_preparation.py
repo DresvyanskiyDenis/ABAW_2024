@@ -1,3 +1,4 @@
+import gc
 import glob
 import os
 import pickle
@@ -25,10 +26,10 @@ def load_train_dev(config)-> Tuple[pd.DataFrame, pd.DataFrame]:
     train_kinesics["video_name"] = train_kinesics["path"].apply(lambda x: x.split("/")[-2])
     dev_kinesics["video_name"] = dev_kinesics["path"].apply(lambda x: x.split("/")[-2])
     # merge the dataframes. To do so, a new column should be created for video_name+frame_number
-    train_facial['video_name_frame_number'] = train_facial['video_name'] + "_" + train_facial['frame_number'].astype(str)
-    dev_facial['video_name_frame_number'] = dev_facial['video_name'] + "_" + dev_facial['frame_number'].astype(str)
-    train_kinesics['video_name_frame_number'] = train_kinesics['video_name'] + "_" + train_kinesics['frame_number'].astype(str)
-    dev_kinesics['video_name_frame_number'] = dev_kinesics['video_name'] + "_" + dev_kinesics['frame_number'].astype(str)
+    train_facial['video_name_frame_number'] = train_facial['video_name'] + "_" + train_facial['frame_num'].astype(int).astype(str)
+    dev_facial['video_name_frame_number'] = dev_facial['video_name'] + "_" + dev_facial['frame_num'].astype(int).astype(str)
+    train_kinesics['video_name_frame_number'] = train_kinesics['video_name'] + "_" + train_kinesics['frame_num'].astype(int).astype(str)
+    dev_kinesics['video_name_frame_number'] = dev_kinesics['video_name'] + "_" + dev_kinesics['frame_num'].astype(int).astype(str)
     # rename embeddings columns
     train_facial = train_facial.rename(columns={f'embedding_{i}': f'facial_embedding_{i}' for i in range(256)})
     dev_facial = dev_facial.rename(columns={f'embedding_{i}': f'facial_embedding_{i}' for i in range(256)})
@@ -43,8 +44,8 @@ def load_train_dev(config)-> Tuple[pd.DataFrame, pd.DataFrame]:
     train = train.loc[:, ~train.columns.str.endswith('_y')]
     dev = dev.loc[:, ~dev.columns.str.endswith('_y')]
     # rename all columns with _x suffix (there are other columns with _ in them)
-    train = train.rename(columns={column_name: column_name.split("_")[0] for column_name in train.columns if column_name.endswith("_x")})
-    dev = dev.rename(columns={column_name: column_name.split("_")[0] for column_name in dev.columns if column_name.endswith("_x")})
+    train = train.rename(columns={column_name: column_name[:-2] for column_name in train.columns if column_name.endswith("_x")})
+    dev = dev.rename(columns={column_name: column_name[:-2] for column_name in dev.columns if column_name.endswith("_x")})
     # round timestamps to two decimal places
     train['timestamp'] = train['timestamp'].apply(lambda x: round(x, 2))
     dev['timestamp'] = dev['timestamp'].apply(lambda x: round(x, 2))
@@ -66,6 +67,9 @@ def load_train_dev(config)-> Tuple[pd.DataFrame, pd.DataFrame]:
         scaler = scaler.fit(train[embeddings_columns])
         train[embeddings_columns] = scaler.transform(train[embeddings_columns])
         dev[embeddings_columns] = scaler.transform(dev[embeddings_columns])
+    # clear RAM
+    del train_facial, dev_facial, train_kinesics, dev_kinesics
+    gc.collect()
     return train, dev
 
 
