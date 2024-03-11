@@ -5,14 +5,6 @@ from typing import Tuple, Optional, Dict
 import argparse
 import gc
 
-import numpy as np
-
-from src.video.training.dynamic_fusion.data_preparation import load_fps_file, get_train_dev_dataloaders, \
-    get_dev_resampled_and_full_fps_dicts
-from src.video.training.dynamic_fusion.evaluation_development import evaluate_on_dev_set_full_fps
-from src.video.training.dynamic_fusion.models import VisualFusionModel
-from src.video.training.dynamic_fusion.training_utils import train_epoch
-
 # infer the path to the project
 path_to_the_project = os.path.abspath(
     os.path.join(os.path.dirname(__file__), os.path.pardir,
@@ -22,6 +14,19 @@ sys.path.append(path_to_the_project)
 # the same, but change "ABAW_2023_SIU" to "datatools"
 sys.path.append(path_to_the_project.replace("ABAW_2023_SIU", "datatools"))
 sys.path.append(path_to_the_project.replace("ABAW_2023_SIU", "simple-HRNet-master"))
+
+
+
+import numpy as np
+
+from src.video.training.dynamic_fusion.data_preparation import load_fps_file, get_train_dev_dataloaders, \
+    get_dev_resampled_and_full_fps_dicts
+from src.video.training.dynamic_fusion.evaluation_development import evaluate_on_dev_set_full_fps
+from src.video.training.dynamic_fusion.models import VisualFusionModel_v1, VisualFusionModel_v2
+
+from src.video.training.dynamic_fusion.training_utils import train_epoch
+
+
 
 import wandb
 import torch
@@ -53,7 +58,9 @@ def initialize_model(model_type: str, input_shape: Tuple[int, int],
         The initialized model.
     """
     if model_type == "fusion_v1":
-        model = VisualFusionModel(input_size=input_shape, num_classes=num_classes, num_regression_neurons=num_regression_neurons)
+        model = VisualFusionModel_v1(input_size=input_shape, num_classes=num_classes, num_regression_neurons=num_regression_neurons)
+    elif model_type == "fusion_v2":
+        model = VisualFusionModel_v2(input_size=input_shape, num_classes=num_classes, num_regression_neurons=num_regression_neurons)
     # print number of model aprameters
     training_num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     all_params = sum(p.numel() for p in model.parameters())
