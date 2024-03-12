@@ -90,7 +90,6 @@ def feature_extraction(model_params: dict, config: dict, problem_type: ProblemTy
             shuffle=False,
             num_workers=8)
     
-    model = model_cls.from_pretrained(model_name)
     model = model_params['model_cls'].from_pretrained(model_name)
     model.load_state_dict(torch.load(os.path.join(model_params['root_path'], 'epoch_{}.pth'.format(model_params['epoch'])))['model_state_dict'])
     
