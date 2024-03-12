@@ -371,17 +371,18 @@ def align_labels_with_metadata(metadata:pd.DataFrame, labels:pd.DataFrame, chall
     # merge metadata with labels
     labels.columns = ["category"] if challenge == "Exp" else ["valence", "arousal"]
     if metadata.shape[0] == labels.shape[0]:
-        metadata = pd.concat([metadata, labels], axis=1)
+        metadata = pd.concat([metadata, labels], axis=1, ignore_index=True)
     else:
         # if metadata has more frames than labels, then we need to duplicate the last label
         if metadata.shape[0] > labels.shape[0]:
             last_label = labels.iloc[-1]
-            labels = pd.concat([labels, pd.DataFrame([last_label]* (metadata.shape[0] - labels.shape[0]))], axis=0)
-            metadata = pd.concat([metadata, labels], axis=1)
+            labels = pd.concat([labels, pd.DataFrame([last_label]* (metadata.shape[0] - labels.shape[0]))], axis=0, ignore_index=True)
+            metadata = pd.concat([metadata, labels], axis=1, ignore_index=True)
         else:
             # if metadata has less frames than labels, then we need to cut the labels
             labels = labels.iloc[:metadata.shape[0]]
-            metadata = pd.concat([metadata, labels], axis=1)
+            metadata = pd.concat([metadata, labels], axis=1, ignore_index=True)
+    metadata.reset_index(drop=True, inplace=True)
     return metadata
 
 
