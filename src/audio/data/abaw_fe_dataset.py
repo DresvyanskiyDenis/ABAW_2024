@@ -286,7 +286,7 @@ class AbawFEDataset(Dataset):
                                                             round_math(frame_rate) * self.max_w_len - 1, 
                                                             round_math(frame_rate) / self.new_fps, dtype=float)))
         
-        mouth_open = np.pad(mouth_open, (0, max(0, round_math(frame_rate) * self.max_w_len - len(targets))), 'edge')
+        mouth_open = np.pad(mouth_open, (0, max(0, round_math(frame_rate) * self.max_w_len - len(mouth_open))), 'edge')
         mouth_open = mouth_open[downsampled_frames]
 
         if targets.ndim == 2:
