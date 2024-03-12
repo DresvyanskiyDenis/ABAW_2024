@@ -530,8 +530,8 @@ if __name__ == "__main__":
         "num_classes": None,
         "num_regression_neurons": 2,
         "device": torch.device("cuda"),
-        "path_to_train_labels": "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/",
-        "path_to_dev_labels": "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/",
+        "path_to_train_labels": "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/",
+        "path_to_dev_labels": "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
         "challenge": "VA",
         "path_to_data": "/nfs/home/ddresvya/scripts/ABAW/",
     }
