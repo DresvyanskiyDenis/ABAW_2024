@@ -105,8 +105,11 @@ class AbawMultimodalExprDataset(Dataset):
                 continue
             
             for idx, mouth_open in enumerate(self.audio_data[fn]['mouth_open']):
+                mouth_open_w = np.split(mouth_open, np.arange(self.new_fps, len(mouth_open), self.new_fps))
+                mouth_open = np.asarray([max(set(i), key=list(i).count) for i in mouth_open_w]).T
+                
                 mouth_close_index = (mouth_open == 0)
-                non_zeros = torch.count_nonzero(mouth_open)
+                non_zeros = np.count_nonzero(mouth_open)
                 
                 if non_zeros == 4:
                     continue

@@ -313,9 +313,6 @@ class AbawFEDataset(Dataset):
             if self.expr_frames_grouping == VAEGrouping.F2S:
                 targets_w = np.split(targets, np.arange(self.new_fps, len(targets), self.new_fps))
                 targets = np.asarray([max(set(i), key=list(i).count) for i in targets_w]).T
-                
-                mouth_open_w = np.split(mouth_open, np.arange(self.new_fps, len(mouth_open), self.new_fps))
-                mouth_open = np.asarray([max(set(i), key=list(i).count) for i in mouth_open_w]).T
             elif self.expr_frames_grouping == VAEGrouping.F2W:
                 targets = max(set(targets), key=list(targets).count)
         else:

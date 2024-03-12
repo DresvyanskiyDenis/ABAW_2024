@@ -139,7 +139,7 @@ def feature_extraction(model_params: dict, config: dict, problem_type: ProblemTy
                     elif k in ['fps', 'start_t', 'end_t']:
                         new_sample_info[fn][keys_mapping[k]].append(float(si[k][idx]))
                     else:
-                        new_sample_info[fn][keys_mapping[k]].append(si[k][idx])
+                        new_sample_info[fn][keys_mapping[k]].append(si[k][idx].numpy())
 
         with open(os.path.join(logs_root, 
                                '{0}_{1}.pickle'.format('expr' if problem_type == ProblemType.CLASSIFICATION else 'va', ds)), 
