@@ -66,7 +66,7 @@ def evaluate_on_dev_set_full_fps(dev_set_full_fps:Dict[str, pd.DataFrame], dev_s
     # go over video names and evaluate the model
     for video_name in video_names:
         # cut on windows the resampled video
-        windows = __cut_video_on_windows(dev_set_resampled[video_name], window_size=window_size, stride=2)
+        windows = __cut_video_on_windows(dev_set_resampled[video_name], window_size=window_size, stride=window_size//4)
         predictions = []
         for window_idx in range(0, len(windows), batch_size):
             # extract the batch of windows
