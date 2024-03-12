@@ -333,20 +333,21 @@ class NetTrainer:
             preds = None
             with torch.set_grad_enabled('train' in phase):
                 preds = self.model(inps)
-                if self.problem_type == ProblemType.CLASSIFICATION:
-                    loss_value = self.loss(preds.reshape(-1, len(self.c_names)), labs.flatten())
-                else:
-                    loss_value = self.loss(preds.reshape(-1, 2), labs.reshape(-1, 2)) 
+                if self.loss:
+                    if self.problem_type == ProblemType.CLASSIFICATION:
+                        loss_value = self.loss(preds.reshape(-1, len(self.c_names)), labs.flatten())
+                    else:
+                        loss_value = self.loss(preds.reshape(-1, 2), labs.reshape(-1, 2)) 
 
                 # backward + optimize only if in training phase
-                if ('train' in phase) and has_labels:
+                if ('train' in phase) and has_labels and self.loss:
                     loss_value.backward()
                     self.optimizer.step()
                     if self.optimizer:
                         self.scheduler.step(epoch + idx / iters)
 
             # statistics
-            if has_labels:
+            if has_labels and self.loss:
                 running_loss += loss_value.item() * dataloader.batch_size
             
             if isinstance(labs, list):
@@ -358,7 +359,7 @@ class NetTrainer:
             if self.problem_type == ProblemType.CLASSIFICATION:
                 preds = F.softmax(preds, dim=-1)
                 
-            if isinstance(labs, list):
+            if isinstance(preds, list):
                 preds = [d.cpu().detach().numpy() for d in preds]
             else:
                 preds = preds.cpu().detach().numpy()
@@ -375,6 +376,72 @@ class NetTrainer:
        
         return targets, predicts, sample_info, epoch_loss
     
+    def extract_features(self, 
+                         phase: str, 
+                         dataloader: torch.utils.data.dataloader.DataLoader, 
+                         verbose: bool = True) -> tuple[list[np.ndarray], list[np.ndarray], list[np.ndarray], list[dict]]:
+        """Loop for feature exctraction
+        - Applies softmax funstion on predicts if `problem_type` is ProblemType.CLASSIFICATION
+
+        Args:
+            phase (str): Name of phase: could be train, devel(valid), test
+            dataloader (torch.utils.data.dataloader.DataLoader): Dataloader of phase
+            verbose (bool, optional): Detailed output with tqdm. Defaults to True.
+
+        Returns:
+            tuple[list[np.ndarray], list[np.ndarray], list[np.ndarray], list[dict]]: targets, 
+                                                                                     predicts, 
+                                                                                     features,
+                                                                                     sample_info
+        """
+        targets = []
+        predicts = []
+        features = []
+        sample_info = []
+        
+        self.model.eval()
+        
+        # Iterate over data.
+        for idx, data in enumerate(tqdm(dataloader, disable=not verbose)):
+            inps, labs, s_info = data
+            if isinstance(inps, list):
+                inps = [d.to(self.device) for d in inps]
+            else:
+                inps = inps.to(self.device)
+
+            if isinstance(labs, list):
+                labs = [d.to(self.device) for d in labs]
+            else:
+                labs = labs.to(self.device)
+
+            # forward and backward
+            preds = None
+            with torch.set_grad_enabled('train' in phase):
+                preds, feats = self.model.get_features(inps)
+            
+            if isinstance(labs, list):
+                labs = [d.cpu().numpy() for d in labs]
+            else:
+                labs = labs.cpu().numpy()
+                
+            targets.extend(labs)
+            if self.problem_type == ProblemType.CLASSIFICATION:
+                preds = F.softmax(preds, dim=-1)
+                
+            if isinstance(preds, list):
+                preds = [d.cpu().detach().numpy() for d in preds]
+            else:
+                preds = preds.cpu().detach().numpy()
+
+            predicts.extend(preds)
+
+            feats = feats.cpu().detach().numpy()
+            features.extend(feats)
+
+            sample_info.extend(s_info)
+       
+        return targets, predicts, features, sample_info
+
     def calc_metrics(self, 
                      targets: list[np.ndarray], 
                      predicts: list[np.ndarray], 
