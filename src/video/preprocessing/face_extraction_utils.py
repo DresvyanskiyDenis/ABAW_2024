@@ -7,7 +7,9 @@ Do not forget to cite https://github.com/biubug6/Pytorch_Retinaface if you use R
 from typing import List, Union, Tuple
 from PIL import Image
 import numpy as np
-from retinaface import RetinafaceDetector
+
+from src.video.preprocessing.retinaface import RetinafaceDetector
+
 
 def load_and_prepare_detector_retinaFace_mobileNet():
     """
