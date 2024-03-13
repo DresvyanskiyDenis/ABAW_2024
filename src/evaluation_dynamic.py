@@ -178,7 +178,7 @@ def evaluate_predictions_on_dev_set_full_fps(predictions:Dict[str, pd.DataFrame]
                                              labels_type:str)->Union[float, Tuple[float, float]]:
     """ Evaluates the predictions on the development set. THe predictions and labels should be passed as the
     dictionaries with video names as keys and dataframes as values.
-    The dataframes should have the following columns: ["timestep", "frame_num"] + either ["category_0", ...., "category_8"]
+    The dataframes should have the following columns: ["timestep", "frame_num"] + either ["category_0", ...., "category_7"]
                                                                                       or ["valence", "arousal"].
 
     The function expects that the predictions are already averaged (there are no intersections in timesteps).
