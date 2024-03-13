@@ -263,7 +263,7 @@ if __name__ == "__main__":
     parser.add_argument('--normalization', '-n', type=str, help='Normalization type', required=True)
     args = parser.parse_args()
     # run main script with passed args
-    main(args.path_to_config_file, window_size=args.window_size, stride=args.window_size//4, challenge=args.challenge,
+    main(args.path_to_config_file, window_size=args.window_size, stride=args.window_size//2, challenge=args.challenge,
          model_type=args.model_type, normalization = args.normalization)
     gc.collect()
     torch.cuda.empty_cache()
