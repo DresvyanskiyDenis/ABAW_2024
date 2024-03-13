@@ -1,12 +1,13 @@
 import gc
 import glob
 from functools import partial
-from typing import Tuple, Optional, List, Callable
+from typing import Tuple, Optional, List, Callable, Dict
 import sys
 import torch
 import os
+import pickle
 
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+
 
 path_to_project = os.path.abspath(
     os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir)) + os.path.sep
@@ -23,6 +24,7 @@ import pandas as pd
 import torchvision.transforms as T
 from torch import nn
 from tqdm import tqdm
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from SimpleHRNet import SimpleHRNet
 from pytorch_utils.data_preprocessing import convert_image_to_float_and_scale
@@ -40,6 +42,21 @@ from src.video.training.dynamic_models.dynamic_models import UniModalTemporalMod
     UniModalTemporalModel_v3, UniModalTemporalModel_v4, UniModalTemporalModel_v5, UniModalTemporalModel_v6_1_fps, \
     UniModalTemporalModel_v7_1_fps, UniModalTemporalModel_v8_1_fps
 
+
+
+
+def load_fps_file(path_to_fps_file:str)->Dict[str, float]:
+    """ Loads the video_to_fps file from the provided path.
+
+    :param path_to_fps_file: str
+        Path to the video_to_fps file.
+    :return: Dict[str, float]
+        Dictionary with video names as keys and fps as values.
+    """
+    with open(path_to_fps_file, 'rb') as f:
+        fps_dict = pickle.load(f)
+        fps_dict = {''.join(key.split('.')[:-1]): value for key, value in fps_dict.items()}
+    return fps_dict
 
 class hook_model(nn.Module):
     def __init__(self, model, hook_layer, challenge:str):
@@ -328,11 +345,11 @@ def process_one_video_static(path_to_video:str, face_detector:object, pose_detec
 
 
 def process_one_video_dynamic(df_video, window_size, stride, dynamic_model, feature_columns, labels_columns,
-                              device,
+                              device, original_fps, needed_fps,
                               batch_size:Optional[int]=32)->pd.DataFrame:
-    # result dataframe
-    columns = (["video_name", "f_start", "f_finish", "t_start", "t_finish"] + [f"feature_{i}" for i in range(len(feature_columns))] +
-               [f"prediction_{i}" for i in range(len(labels_columns))] + labels_columns)
+    # take avery n frame depending on the original_fps and needed_fps
+    every_n_frame = int(original_fps / needed_fps)
+    df_video = df_video.iloc[::every_n_frame]
     # cut on windows
     windows = __cut_video_on_windows(df_video, window_size=window_size, stride=stride)
     predictions = []
@@ -439,7 +456,7 @@ def process_all_videos_static(config, videos:List[str]):
 
 
 def process_all_videos_dynamic(dynamic_model_type, path_to_weights, normalization, embeddings_columns,
-                               input_shape, num_classes, num_regression_neurons,
+                               input_shape, num_classes, num_regression_neurons, video_to_fps,
                                  challenge, path_to_extracted_features:str, window_size:int, stride:int, device:torch.device,
                                     batch_size:int=32):
     # initialize dynamic models
@@ -451,6 +468,16 @@ def process_all_videos_dynamic(dynamic_model_type, path_to_weights, normalizatio
     # load metadata
     metadata_static = glob.glob(os.path.join(path_to_extracted_features, "*.csv"))
     metadata_static = {os.path.basename(file).split(".")[0]: pd.read_csv(file) for file in metadata_static}
+    # assign column names
+    columns = (['video_name', 'frame_num', 'timestep'] + [f"facial_embedding_{i}" for i in range(256)] +
+               [f"pose_embedding_{i}" for i in range(256)])
+    if challenge == "Exp":
+        columns = columns + ["category"]
+    else:
+        columns = columns + ["valence", "arousal"]
+    # assign column names to every dataframe
+    for video in metadata_static.keys():
+        metadata_static[video].columns = columns
     # fit normalizer
     features = np.concatenate([metadata_static[video][embeddings_columns].dropna().values for video in metadata_static.keys()], axis=0)
     normalizer = normalizer.fit(features)
@@ -463,7 +490,8 @@ def process_all_videos_dynamic(dynamic_model_type, path_to_weights, normalizatio
         df = df.dropna()
         # normalize features
         df.loc[:, embeddings_columns] = normalizer.transform(df[embeddings_columns].values)
-        predictions = process_one_video_dynamic(df_video=df, window_size=window_size,
+        predictions = process_one_video_dynamic(df_video=df, original_fps=video_to_fps[video], needed_fps=5,
+                                                window_size=window_size,
                                                         stride=stride, dynamic_model=dynamic_model,
                                                         feature_columns=embeddings_columns, labels_columns=labels_columns,
                                                         device=device, batch_size=batch_size)
@@ -473,10 +501,10 @@ def process_all_videos_dynamic(dynamic_model_type, path_to_weights, normalizatio
         num_frames, timesteps, labels, features, preds = predictions
         values = {
             'features' : features,
-            'f_start' : [item[0] for item in num_frames],
-            'f_finish' : [item[-1] for item in num_frames],
-            't_start' : [item[0] for item in timesteps],
-            't_finish' : [item[-1] for item in timesteps],
+            'frame_start' : [item[0] for item in num_frames],
+            'frame_end' : [item[-1] for item in num_frames],
+            'timestep_start' : [item[0] for item in timesteps],
+            'timestep_end' : [item[-1] for item in timesteps],
             'predicts' : preds,
             'targets' : labels,
         }
@@ -521,7 +549,7 @@ if __name__ == "__main__":
 
     metadata_dynamic = process_all_videos_static(config_static_exp, videos)"""
 
-    config_static_VA = {
+    """config_static_VA = {
         "static_model_type": "EfficientNet-B1",
         "pose_model_type": "HRNet",
         "path_to_static_weights": "/nfs/scratch/ddresvya/Data/weights_best_models/ABAW/fine_tuned/VA_challenge/AffWild2_static_va_best_b1.pth",
@@ -537,20 +565,20 @@ if __name__ == "__main__":
         "path_to_data": "/nfs/home/ddresvya/scripts/ABAW/",
     }
     videos = glob.glob("/nfs/home/ddresvya/scripts/ABAW/*")
-    metadata_dynamic = process_all_videos_static(config_static_VA, videos)
+    metadata_dynamic = process_all_videos_static(config_static_VA, videos)"""
 
 
 
-    """config_dynamic = {
+    config_dynamic = {
         "dynamic_model_facial": "dynamic_v3",
         "dynamic_model_pose": "dynamic_v3",
         "dynamic_model_fusion": "fusion_v1",
         "config_dynamic": "min_max",
         "normalization_pose": "min_max",
-        "normalization_fusion": None,
-        "path_dynamic_model_facial": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic/uni_modal_facial_best.pth",
+        "normalization_fusion": "standard",
+        "path_dynamic_model_facial": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic/uni_modal_face_best.pth",
         "path_dynamic_model_pose": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic/uni_modal_pose_best.pth",
-        "path_dynamic_model_fusion": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic/fusion_best.pth",
+        "path_dynamic_model_fusion": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic/bi_modal_face_pose_best.pth",
         "input_shape": (20, 256),
         "num_classes": 8,
         "num_regression_neurons": None,
@@ -561,6 +589,7 @@ if __name__ == "__main__":
         "path_to_train_labels": "/home/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/",
         "path_to_dev_labels": "/home/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/",
         "challenge": "Exp",
+        'video_to_fps': load_fps_file(os.path.join(path_to_project,"src/video/training/dynamic_models/fps.pkl"))
     }
 
     result = process_all_videos_dynamic(dynamic_model_type=config_dynamic["dynamic_model_facial"],
@@ -569,9 +598,10 @@ if __name__ == "__main__":
                                         embeddings_columns=[f"facial_embedding_{i}" for i in range(256)],
                                input_shape=(20,256), num_classes=8, num_regression_neurons=None,
                                  challenge="Exp", path_to_extracted_features="/home/ddresvya/Data/features/Exp/",
-                                        window_size=20, stride=10, device=torch.device("cuda"))
+                                        window_size=20, stride=10, device=torch.device("cuda"),
+                                        video_to_fps=config_dynamic['video_to_fps'])
 
     # save using pickle
     import pickle
     with open("/home/ddresvya/Data/dynamic_features_facial.pkl", "wb") as file:
-        pickle.dump(result, file)"""
+        pickle.dump(result, file)
