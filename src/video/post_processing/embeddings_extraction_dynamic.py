@@ -3,6 +3,8 @@ import glob
 from functools import partial
 from typing import Tuple, Optional, List, Callable, Dict
 import sys
+
+import math
 import torch
 import os
 import pickle
@@ -350,14 +352,42 @@ def process_one_video_static(path_to_video:str, face_detector:object, pose_detec
     return metadata
 
 
+
+def round_math(val: float) -> int:
+    """Rounds value. Proposed by Elena Ryumina
+    Args:
+        val (float): Value
+    Returns:
+        int: Rounded value
+    """
+    modf = math.modf(val)
+
+    if modf[0] >= 0.5:
+        res = modf[1] + 1
+    else:
+        if modf[0] <= -0.5:
+            res = modf[1] - 1
+        else:
+            res = math.ceil(modf[1])
+
+    return int(res)
+
 def process_one_video_dynamic(df_video, window_size, stride, dynamic_model, feature_columns, labels_columns,
                               device, original_fps, needed_fps,
                               batch_size:Optional[int]=32)->pd.DataFrame:
-    # take avery n frame depending on the original_fps and needed_fps
-    every_n_frame = int(round(original_fps / needed_fps))
-    df_video = df_video.iloc[::every_n_frame]
+    #df_video = df_video.iloc[::every_n_frame]
     # cut on windows
-    windows = __cut_video_on_windows(df_video, window_size=window_size, stride=stride)
+    original_fps = round_math(original_fps)
+    every_n_frame = int(round(original_fps / needed_fps))
+    full_window_size = int(np.round(window_size//5*original_fps))
+    windows = __cut_video_on_windows(df_video, window_size=full_window_size, stride=round_math(full_window_size/2))
+    for idx in range(len(windows)):
+        # if the window is too short (has one less frame than the full_window_size), then we need to pad it by adding last row
+        if len(windows[idx]) < full_window_size:
+            last_row = windows[idx].iloc[-1].copy()
+            windows[idx] = pd.concat([windows[idx], last_row], axis=0, ignore_index=True)
+            windows[idx].reset_index(drop=True, inplace=True)
+    windows = [item.iloc[::every_n_frame] for item in windows]
     predictions = []
     for window_idx in range(0, len(windows), batch_size):
         # extract the batch of windows
