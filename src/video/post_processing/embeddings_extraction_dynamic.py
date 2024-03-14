@@ -133,13 +133,13 @@ def __initialize_face_detector():
 def __initialize_pose_detector():
     detector = SimpleHRNet(c=48, nof_joints=17, multiperson=True,
                 yolo_version='v3',
-                yolo_model_def=os.path.join("/nfs/home/ddresvya/scripts/simple-HRNet-master/",
+                yolo_model_def=os.path.join("/home/ddresvya/PhD/simple-HRNet-master/",
                                             "models_/detectors/yolo/config/yolov3.cfg"),
-                yolo_class_path=os.path.join("/nfs/home/ddresvya/scripts/simple-HRNet-master/",
+                yolo_class_path=os.path.join("/home/ddresvya/PhD/simple-HRNet-master/",
                                              "models_/detectors/yolo/data/coco.names"),
-                yolo_weights_path=os.path.join("/nfs/home/ddresvya/scripts/simple-HRNet-master/",
+                yolo_weights_path=os.path.join("/home/ddresvya/PhD/simple-HRNet-master/",
                                                "models_/detectors/yolo/weights/yolov3.weights"),
-                checkpoint_path=r"/nfs/home/ddresvya/scripts/simple-HRNet-master/pose_hrnet_w48_384x288.pth",
+                checkpoint_path=r"/home/ddresvya/PhD/simple-HRNet-master/pose_hrnet_w48_384x288.pth",
                 return_heatmaps=False, return_bounding_boxes=True, max_batch_size=1, device=torch.device("cuda"))
     return detector
 
@@ -354,7 +354,7 @@ def process_one_video_dynamic(df_video, window_size, stride, dynamic_model, feat
                               device, original_fps, needed_fps,
                               batch_size:Optional[int]=32)->pd.DataFrame:
     # take avery n frame depending on the original_fps and needed_fps
-    every_n_frame = int(original_fps / needed_fps)
+    every_n_frame = int(round(original_fps / needed_fps))
     df_video = df_video.iloc[::every_n_frame]
     # cut on windows
     windows = __cut_video_on_windows(df_video, window_size=window_size, stride=stride)
