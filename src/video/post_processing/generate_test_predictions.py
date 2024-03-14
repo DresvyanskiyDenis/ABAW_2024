@@ -52,7 +52,7 @@ def process_all_videos_static_test(config, videos:List[str]):
     facial_feature_extractor = facial_feature_extractor.to(config["device"])
     pose_feature_extractor = pose_feature_extractor.to(config["device"])
     # get only videos that are in labels
-    path_to_data = config["path_to_data"]
+    path_to_data = config["path_to_videos"]
     videos = [os.path.basename(video).split(".")[0] for video in videos]
     # go over videos
     for video in tqdm(videos):
@@ -210,7 +210,7 @@ def generate_test_predictions_all_videos(dynamic_model_type, path_to_weights, no
 
 
 def main():
-    """# static Exp
+    # static Exp
     config_static_exp = {
         "static_model_type": "ViT_b_16",
         "pose_model_type": "HRNet",
@@ -223,13 +223,18 @@ def main():
         "device": torch.device("cuda"),
         "batch_size": 32,
         "challenge": "Exp",
+        "path_to_videos": "/home/ddresvya/Data/ABAW/"
     }
-    videos_test_exp = glob.glob(None) # TODO: add path to videos
+    # read test filenames from txt
+    videos_test_exp = list(np.loadtxt("/home/ddresvya/Data/test_set/names_of_videos_in_each_test_set/Expression_Recognition_Challenge_test_set_release.txt", dtype=str).flatten())
+    # create output folder if not exists
+    if not os.path.exists(config_static_exp["output_static_features"]):
+        os.makedirs(config_static_exp["output_static_features"])
     process_all_videos_static_test(config=config_static_exp, videos=videos_test_exp)
 
 
     # static VA
-    config_static_VA = {
+    """config_static_VA = {
         "static_model_type": "EfficientNet-B1",
         "pose_model_type": "HRNet",
         "path_to_static_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned/VA_challenge/AffWild2_static_va_best_b1.pth",
@@ -246,7 +251,7 @@ def main():
     process_all_videos_static_test(config=config_static_VA, videos=videos_test_VA)"""
 
 
-    # make dynamic predictions
+    """# make dynamic predictions
     config_dynamic_face_uni_modal_exp = {
         "dynamic_model_type": "dynamic_v3",
         "embeddings_columns": [f"facial_embedding_{i}" for i in range(256)],
@@ -264,7 +269,7 @@ def main():
         'output_path': None, # TODO: add path to the output
         'path_to_extracted_features': None # TODO: add path to the extracted features
     }
-    generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_exp)
+    generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_exp)"""
 
 
 
