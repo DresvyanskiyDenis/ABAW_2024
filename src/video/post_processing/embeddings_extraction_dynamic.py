@@ -112,7 +112,7 @@ def __cut_video_on_windows(video:pd.DataFrame, window_size:int, stride:int)->Lis
     reference_range = np.round(frame_num_difference * (window_size-1), 2)
     # go over the video and cut it on windows. We include only windows with the same range as the reference range
     # (thus, only windows with the monotonically increasing timesteps are included in the result list)
-    for i in range(0, len(video) - window_size, stride):
+    for i in range(0, len(video), stride):
         window = video.iloc[i:i + window_size]
         actual_range = np.round(window["frame_num"].iloc[-1] - window["frame_num"].iloc[0], 2)
         if actual_range == reference_range:
@@ -121,8 +121,9 @@ def __cut_video_on_windows(video:pd.DataFrame, window_size:int, stride:int)->Lis
     # then, we will just take the last window
     if len(windows) == 0:
         windows.append(video.iloc[-window_size:])
-    # most of the times, the last window is not full, so we will replace it with the window that starts from -window_size
-    windows[-1] = video.iloc[-window_size:]
+    # most of the times, the last window has not been added as there have been not enough values. Therefore,
+    # we add it manually
+    windows.append(video.iloc[-window_size:])
     return windows
 
 def __initialize_face_detector():
@@ -658,7 +659,7 @@ if __name__ == "__main__":
                                         device=config_dynamic_face_uni_modal_exp["device"],
                                         batch_size=config_dynamic_face_uni_modal_exp["batch_size"])
     # save using pickle
-    with open("/home/ddresvya/Data/dynamic_features_fusion_exp.pkl", "wb") as file:
+    with open("/home/ddresvya/Data/dynamic_features_bi_modal_fusion_exp.pkl", "wb") as file:
         pickle.dump(result_bi_modal_face_pose_exp, file)
 
 
