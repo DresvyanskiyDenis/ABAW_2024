@@ -9,13 +9,13 @@ import torch.nn as nn
 from audio.models.attention_layers import *
 
 class TestModel(torch.nn.Module):
-    def __init__(self, a_f_size=1024, v_f_size=256, av_f_size=256, num_classes=8):
-        super(TestModel, self).__init__()
+    def init(self, a_f_size=1024, v_f_size=256, av_f_size=256, num_classes=8):
+        super(TestModel, self).init()
         self.a_f_size = a_f_size
         self.v_f_size = v_f_size
         self.av_f_size = av_f_size
 
-        self.num_classes = num_classes
+        self.out_size = num_classes
 
         self.a_downsample = torch.nn.Linear(self.a_f_size, self.av_f_size)
 
@@ -33,7 +33,7 @@ class TestModel(torch.nn.Module):
         
         self.attention_fusion_model = AttentionFusionModel(self.av_f_size, self.av_f_size, out_size=self.av_f_size)
         
-        self.classifier = torch.nn.Linear(self.av_f_size, self.num_classes)
+        self.classifier = torch.nn.Linear(self.av_f_size, self.out_size)
 
     def forward(self, x):
         x_a, x_v = x
@@ -46,7 +46,7 @@ class TestModel(torch.nn.Module):
 
         x = self.attention_fusion_model(a_f, v_f)
         x = self.classifier(x)
-        x = x.repeat(1, 5, 1)
+        x = torch.concat([x[:,i,:].unsqueeze(1).repeat(1, 5, 1) for i in range(4)], dim=1)
         return x
 
 
