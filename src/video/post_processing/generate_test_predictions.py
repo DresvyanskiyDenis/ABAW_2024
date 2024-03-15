@@ -236,7 +236,7 @@ def main():
 
 
     # static VA
-    """config_static_VA = {
+    config_static_VA = {
         "static_model_type": "EfficientNet-B1",
         "pose_model_type": "HRNet",
         "path_to_static_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned/VA_challenge/AffWild2_static_va_best_b1.pth",
@@ -248,9 +248,10 @@ def main():
         "device": torch.device("cuda"),
         "challenge": "VA",
         "batch_size": 32,
+        "path_to_videos": "/home/ddresvya/Data/ABAW/"
     }
-    videos_test_VA = glob.glob(None) # TODO: add path to videos
-    process_all_videos_static_test(config=config_static_VA, videos=videos_test_VA)"""
+    videos_test_VA = list(np.loadtxt("/home/ddresvya/Data/test_set/names_of_videos_in_each_test_set/Valence_Arousal_Estimation_Challenge_test_set_release.txt", dtype=str).flatten())
+    process_all_videos_static_test(config=config_static_VA, videos=videos_test_VA)
 
 
     """# make dynamic predictions
