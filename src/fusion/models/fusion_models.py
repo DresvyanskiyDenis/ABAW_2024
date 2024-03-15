@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from src.fusion.layers_utils import PositionalEncoding, MultiHeadAttention
+from fusion.models.layers_utils import PositionalEncoding, MultiHeadAttention
 
 
 class final_fusion_model_v1(nn.Module):
@@ -63,7 +63,7 @@ class final_fusion_model_v1(nn.Module):
         if sequence.shape[1] > needed_length:
             return sequence[:needed_length]
         else:
-            return torch.cat([sequence, torch.zeros(sequence.shape[0], needed_length - sequence.shape[1], sequence.shape[2])], dim=1)
+            return torch.cat([sequence, torch.zeros(sequence.shape[0], needed_length - sequence.shape[1], sequence.shape[2], device=sequence.device)], dim=1)
 
     def __generate_mask(self, sequence):
         # generates mask for the values that are all ZERO across one timestep (dimension with idx 1)
