@@ -527,8 +527,9 @@ def process_all_videos_dynamic(dynamic_model_type, path_to_weights, normalizatio
     # fit normalizer
     # concatenate embeddings columns if tuple
     feature_columns = embeddings_columns if not isinstance(embeddings_columns, tuple) else embeddings_columns[0] + embeddings_columns[1]
-    features = np.concatenate([metadata_static[video][feature_columns].dropna().values for video in metadata_static.keys()], axis=0)
-    normalizer = normalizer.fit(features)
+    if normalizer is not None:
+        features = np.concatenate([metadata_static[video][feature_columns].dropna().values for video in metadata_static.keys()], axis=0)
+        normalizer = normalizer.fit(features)
     # process all videos
     result = {}
     labels_columns = ["category"] if challenge == "Exp" else ["valence", "arousal"]
@@ -703,7 +704,7 @@ if __name__ == "__main__":
 
     # dynamic extraction (VA)
     config_dynamic_face_uni_modal_v = {
-        "dynamic_model_facial": "dynamic_3",
+        "dynamic_model_facial": "dynamic_v3",
         "normalization_face": "per-video-minmax",
         "path_dynamic_model_facial": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_valence_best.pth",
         "input_shape": (20, 256),
@@ -738,7 +739,7 @@ if __name__ == "__main__":
         pickle.dump(result_uni_modal_face_v, file)
 
     config_dynamic_face_uni_modal_a = {
-        "dynamic_model_facial": "dynamic_3",
+        "dynamic_model_facial": "dynamic_v3",
         "normalization_face": "per-video-minmax",
         "path_dynamic_model_facial": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_arousal_best.pth",
         "input_shape": (20, 256),
