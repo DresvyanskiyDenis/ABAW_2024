@@ -222,7 +222,6 @@ class AbawFEDataset(Dataset):
             - Forms metadata and labels
             - Forms expr label statistics
         """
-        print('h')
         for label_file_name in sorted(self.label_filenames):
             if '.DS_Store' in label_file_name:
                 continue
