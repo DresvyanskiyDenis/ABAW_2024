@@ -52,6 +52,9 @@ class AbawMultimodalExprDataset(Dataset):
         self.video_features_path = video_features_path
         self.labels_root = labels_root
         self.label_filenames = [l_fn.replace('.txt', '') for l_fn in label_filenames]
+        if '10-60-1280x720_right' in self.label_filenames:
+            self.label_filenames.remove('10-60-1280x720_right') # remove this file
+
         self.dataset = dataset
 
         self.audio_train_features_path = audio_train_features_path
@@ -77,17 +80,17 @@ class AbawMultimodalExprDataset(Dataset):
                 
         self.prepare_audio_data()
         self.prepare_video_data()
-    
+
     def prepare_video_data(self) -> None:
         self.video_data = None
         with open(self.video_features_path, 'rb') as handle:
-            self.video_data = dict(sorted(pickle.load(handle).items())) # sort by filename
+            temp = pickle.load(handle)
+            temp = dict(sorted(temp.items()))
+            temp = {l: temp[l] for l in self.label_filenames}
+            self.video_data = dict(sorted(temp.items())) # sort by filename
         
         for fn in self.video_data.keys():
-            if fn not in self.label_filenames:
-                continue
-               
-            for idx, targets in enumerate(self.video_data[fn]['targets']):
+            for idx, targets in enumerate(self.audio_data[fn]['targets']): # iterate over audio, because it has less num of windows
                 self.video_meta.append({'filename': fn, 'idx': idx})
                 self.expr_labels.extend(self.video_data[fn]['targets'][idx])
                     
@@ -113,13 +116,10 @@ class AbawMultimodalExprDataset(Dataset):
         self.audio_data = None
         with open(self.audio_features_path, 'rb') as handle:
             temp = pickle.load(handle)
-            temp = {k.replace('.txt', ''): v for k, v in temp.items()}
+            temp = {l.replace('.txt', ''): temp['{0}.txt'.format(l)] for l in self.label_filenames}
             self.audio_data = dict(sorted(temp.items())) # sort by filename
 
-        for fn in self.audio_data.keys():
-            if fn not in self.label_filenames:
-                continue
-            
+        for fn in self.audio_data.keys():    
             for idx, mouth_open in enumerate(self.audio_data[fn]['mouth_open']):
                 mouth_open_w = np.split(mouth_open, np.arange(self.new_fps, len(mouth_open), self.new_fps))
                 mouth_open = np.asarray([max(set(i), key=list(i).count) for i in mouth_open_w]).T
@@ -177,7 +177,7 @@ class AbawMultimodalExprDataset(Dataset):
         y = self.video_data[v_meta['filename']]['targets'][v_meta['idx']][:20] #TODO
         y = np.pad(y.squeeze(), (0, min(20, abs(len(y) - 20))), mode='edge') #TODO
 
-        return [torch.FloatTensor(a_features), torch.FloatTensor(v_features)], y, [sample_info]
+        return [torch.FloatTensor(a_features), torch.FloatTensor(v_features)], torch.LongTensor(y), [sample_info]
             
     def __len__(self) -> int:
         """Return number of all samples in dataset
@@ -197,18 +197,17 @@ if __name__ == "__main__":
     }
     
     validation_files = os.listdir(os.path.join(labels_root, '{0}_Set'.format(ds_names['devel'].capitalize())))
-    tts = train_test_split(validation_files, test_size=0.2, random_state=0)
     
     metadata_info = {}
     for ds in ds_names:
         metadata_info[ds] = {
-            'label_filenames': tts[0] if 'train' in ds else tts[1],
+            'label_filenames': os.listdir(os.path.join(labels_root, '{0}_Set'.format(ds_names[ds].capitalize()))),
             'dataset': '{0}_Set'.format(ds_names[ds].capitalize()),
         }
         
     # EXPR
     for ds in ds_names:
-        amed = AbawMultimodalExprDataset(audio_features_path='/media/maxim/WesternDigital/ABAWLogs/EXPR/audio_features/expr_devel.pickle',
+        amed = AbawMultimodalExprDataset(audio_features_path='/media/maxim/WesternDigital/ABAWLogs/EXPR/audio_features/expr_{0}.pickle'.format(ds),
                                          video_features_path='/media/maxim/WesternDigital/ABAWLogs/EXPR/Dynamic_features_exp_new2/dynamic_features_facial_exp.pkl',
                                          labels_root=labels_root,
                                          label_filenames=metadata_info[ds]['label_filenames'],

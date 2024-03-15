@@ -92,7 +92,7 @@ def main(config: dict) -> None:
             datasets[ds] = torch.utils.data.ConcatDataset([                   
                 AbawMultimodalExprDataset(audio_features_path=metadata_info[ds]['audio_features_path'],
                                           video_features_path=video_features_path,
-                                          labels_root=os.path.join(labels_root, '{0}_Set'.format(ds_names['devel'].capitalize())),
+                                          labels_root=os.path.join(labels_root, '{0}_Set'.format(ds_names[ds].capitalize())),
                                           label_filenames=metadata_info[ds]['label_filenames'],
                                           dataset=metadata_info[ds]['dataset'],
                                           audio_train_features_path=audio_train_features_path,
@@ -102,7 +102,7 @@ def main(config: dict) -> None:
         else:
             datasets[ds] = AbawMultimodalExprDataset(audio_features_path=metadata_info[ds]['audio_features_path'],
                                                      video_features_path=video_features_path,
-                                                     labels_root=os.path.join(labels_root, '{0}_Set'.format(ds_names['devel'].capitalize())),
+                                                     labels_root=os.path.join(labels_root, '{0}_Set'.format(ds_names[ds].capitalize())),
                                                      label_filenames=metadata_info[ds]['label_filenames'],
                                                      dataset=metadata_info[ds]['dataset'],
                                                      audio_train_features_path=audio_train_features_path,
