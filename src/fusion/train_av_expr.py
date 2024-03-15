@@ -137,7 +137,7 @@ def main(config: dict) -> None:
     
     class_sample_count = datasets['train'].datasets[0].expr_labels_counts
     class_weights = torch.Tensor(max(class_sample_count) / class_sample_count).to(device)
-    #class_weights = class_weights/class_weights.sum()
+    class_weights = class_weights/class_weights.sum()
     loss = torch.nn.CrossEntropyLoss(weight=class_weights, label_smoothing=.2)
     #loss = SoftFocalLossWrapper(focal_loss=SoftFocalLoss(alpha=class_weights), num_classes=len(c_names))
     

@@ -46,7 +46,7 @@ class TestModel(torch.nn.Module):
 
         x = self.attention_fusion_model(a_f, v_f)
         x = self.classifier(x)
-        x = x.repeat(1, 5, 1)
+        x = torch.concat([x[:,i,:].unsqueeze(1).repeat(1, 5, 1) for i in range(4)], dim=1)
         return x
 
 
