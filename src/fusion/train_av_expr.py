@@ -76,14 +76,14 @@ def main(config: dict) -> None:
         if 'train' in ds:
             if aug:
                 all_transforms[ds] = [
-                    [None, None]
+                    [None, None, None]
                 ]
             else:
                 all_transforms[ds] = [
-                    [None, None]
+                    [None, None, None]
                 ]
         else:
-            all_transforms[ds] = [None, None]
+            all_transforms[ds] = [None, None, None]
 
 
     datasets = {}
@@ -121,7 +121,7 @@ def main(config: dict) -> None:
                              c_names=c_names,
                              metrics=[f1, recall, precision],
                              device=device,
-                             group_predicts_fn=evaluate_model_full_fps, # TODO
+                             group_predicts_fn=None, #evaluate_model_full_fps, # TODO
                              source_code=source_code)
         
     dataloaders = {}
@@ -167,6 +167,7 @@ def run_expression_training() -> None:
     """
     
     model_cls = [final_fusion_model_v1]
+    model_cls = [TestModel]
     
     for augmentation in [False]:
         for m_cls in model_cls:

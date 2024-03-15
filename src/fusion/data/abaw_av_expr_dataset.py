@@ -64,7 +64,7 @@ class AbawMultimodalExprDataset(Dataset):
         self.min_w_len = min_w_len
         self.max_w_len = max_w_len
         
-        self.a_transform, self.v_transform = transform
+        self.a_transform, self.v_transform, self.av_transform = transform
         
         self.audio_data = None
         self.audio_meta = []
@@ -155,10 +155,13 @@ class AbawMultimodalExprDataset(Dataset):
         v_features = np.pad(v_features, ((0, min(20, abs(len(v_features) - 20))), (0, 0)), mode='edge') #TODO
 
         if self.a_transform:
-            a_features = self.transform(a_features)
+            a_features = self.a_transform(a_features)
         
         if self.v_transform:
-            v_features = self.transform(v_features)
+            v_features = self.v_transform(v_features)
+
+        if self.av_transform:
+            a_features, v_features = self.av_transform(a_features, v_features)
 
         sample_info = {k: self.video_data[v_meta['filename']][k] if 'fps' in k \
             else self.video_data[v_meta['filename']][k][v_meta['idx']] \
