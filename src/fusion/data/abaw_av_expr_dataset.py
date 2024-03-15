@@ -18,7 +18,6 @@ from transformers import Wav2Vec2Processor
 
 from sklearn.model_selection import train_test_split
 
-from audio.utils.common_utils import round_math
 
 class AbawMultimodalExprDataset(Dataset):
     """Multimodal dataset for EXPR
@@ -30,6 +29,7 @@ class AbawMultimodalExprDataset(Dataset):
         labels_root (str): Labels root dir
         label_filenames (str): Filenames of labels
         dataset (str): Dataset type. Can be 'Train' or 'Validation'
+        audio_train_features_path (str): Path to train set audio features
         sr (int, optional): Sample rate of audio files. Defaults to 16000.
         shift (int, optional): Window shift in seconds. Defaults to 4.
         min_w_len (int, optional): Minimum window length in seconds. Defaults to 2.
@@ -42,6 +42,7 @@ class AbawMultimodalExprDataset(Dataset):
                  labels_root: str, 
                  label_filenames: str, 
                  dataset: str,
+                 audio_train_features_path: str, 
                  sr: int = 16000, 
                  shift: int = 4, 
                  min_w_len: int = 2, 
@@ -50,8 +51,10 @@ class AbawMultimodalExprDataset(Dataset):
         self.audio_features_path = audio_features_path
         self.video_features_path = video_features_path
         self.labels_root = labels_root
-        self.label_filenames = label_filenames
+        self.label_filenames = [l_fn.replace('.txt', '') for l_fn in label_filenames]
         self.dataset = dataset
+
+        self.audio_train_features_path = audio_train_features_path
         
         self.sr = sr
         self.shift = shift
@@ -67,7 +70,7 @@ class AbawMultimodalExprDataset(Dataset):
         self.video_meta = []
         self.new_fps = 5 # downsampling to fps per second
         
-        self.audio_default_feature_value = 0.3525738 # constant value, mean features on speech segments of train set
+        self.audio_mean_features_value = None # mean features on speech segments of train set
         
         self.expr_labels = []
         self.expr_labels_counts = []
@@ -78,28 +81,41 @@ class AbawMultimodalExprDataset(Dataset):
     def prepare_video_data(self) -> None:
         self.video_data = None
         with open(self.video_features_path, 'rb') as handle:
-            self.video_data = pickle.load(handle)
-            
+            self.video_data = dict(sorted(pickle.load(handle).items())) # sort by filename
+        
         for fn in self.video_data.keys():
             if fn not in self.label_filenames:
                 continue
                
-            self.video_data[fn]['fps'] = self.video_data[fn]['fps'][0] # TODO
-            for idx, targets in enumerate(self.audio_data[fn]['targets']):
-                targets = np.concatenate([targets] * 5, axis=0) # TODO
-                targets_w = np.split(targets, np.arange(self.new_fps, len(targets), self.new_fps))
-                self.video_data[fn]['targets'][idx] = np.asarray([max(set(i), key=list(i).count) for i in targets_w]).T
-                
+            for idx, targets in enumerate(self.video_data[fn]['targets']):
                 self.video_meta.append({'filename': fn, 'idx': idx})
                 self.expr_labels.extend(self.video_data[fn]['targets'][idx])
                     
-        self.expr_labels_counts = np.unique(np.asarray(self.expr_labels), return_counts=True)[1]
+        self.expr_labels = np.asarray(self.expr_labels)
+        self.expr_labels_counts = np.unique(self.expr_labels[self.expr_labels != -1], return_counts=True)[1] # remove -1
     
     def prepare_audio_data(self) -> None:
+        # Calculate mean audio features across train dataset
+        train_audio_features = []
+        with open(self.audio_train_features_path, 'rb') as handle:
+            a_train_data = pickle.load(handle)
+        
+        for fn in a_train_data.keys():
+            for idx, m_o in enumerate(a_train_data[fn]['mouth_open']):
+                mouth_open_w = np.split(m_o, np.arange(self.new_fps, len(m_o), self.new_fps))
+                mouth_open = np.asarray([max(set(i), key=list(i).count) for i in mouth_open_w]).T
+
+                mouth_open_index = (mouth_open == 1)
+                train_audio_features.append(a_train_data[fn]['features'][idx][mouth_open_index, :])
+
+        self.audio_mean_features_value = np.repeat(np.concatenate(train_audio_features).mean(axis=0)[np.newaxis, :], 4, axis=0)
+        
         self.audio_data = None
         with open(self.audio_features_path, 'rb') as handle:
-            self.audio_data = pickle.load(handle)
-        
+            temp = pickle.load(handle)
+            temp = {k.replace('.txt', ''): v for k, v in temp.items()}
+            self.audio_data = dict(sorted(temp.items())) # sort by filename
+
         for fn in self.audio_data.keys():
             if fn not in self.label_filenames:
                 continue
@@ -111,17 +127,16 @@ class AbawMultimodalExprDataset(Dataset):
                 mouth_close_index = (mouth_open == 0)
                 non_zeros = np.count_nonzero(mouth_open)
                 
+                self.audio_meta.append({'filename': fn, 'idx': idx})
                 if non_zeros == 4:
                     continue
                 
                 if non_zeros == 0:
-                    self.audio_data[fn]['features'][idx] = torch.full(self.audio_data[fn]['features'][idx].shape, self.audio_default_feature_value)
+                    self.audio_data[fn]['features'][idx] = np.copy(self.audio_mean_features_value)
                 else:
-                    window_mean = self.audio_data[fn]['features'][idx][mouth_close_index,:].mean()
-                    self.audio_data[fn]['features'][idx][mouth_close_index] = torch.full((1, self.audio_data[fn]['features'][idx].shape[1]), 
-                                                                                    window_mean)
+                    window_mean = self.audio_data[fn]['features'][idx][~mouth_close_index,:].mean(axis=0)
+                    self.audio_data[fn]['features'][idx][mouth_close_index] = np.copy(window_mean)
                 
-                self.audio_meta.append({'filename': fn, 'idx': idx})
 
     def __getitem__(self, index: int) -> tuple[list[torch.Tensor, torch.Tensor], torch.LongTensor, list[dict]]:
         """Gets features from dataset
@@ -136,7 +151,8 @@ class AbawMultimodalExprDataset(Dataset):
         a_features = self.audio_data[a_meta['filename']]['features'][a_meta['idx']]
         
         v_meta = self.video_meta[index]
-        v_features = self.video_data[v_meta['filename']]['features'][v_meta['idx']]
+        v_features = self.video_data[v_meta['filename']]['features'][v_meta['idx']][:20] #TODO
+        v_features = np.pad(v_features, ((0, min(20, abs(len(v_features) - 20))), (0, 0)), mode='edge') #TODO
 
         if self.a_transform:
             a_features = self.transform(a_features)
@@ -152,10 +168,14 @@ class AbawMultimodalExprDataset(Dataset):
         del sample_info['predicts']
         del sample_info['features']
         
-        sample_info['filename'] = a_meta['filename']
+        sample_info['challenge'] = 'Exp'
+        sample_info['path_to_labels'] = self.labels_root
+        sample_info['video_name'] = a_meta['filename']
+        sample_info['fps'] = self.audio_data[a_meta['filename']]['fps'][a_meta['idx']]
         sample_info['mouth_open'] = self.audio_data[a_meta['filename']]['mouth_open'][a_meta['idx']]
 
-        y = self.video_data[v_meta['filename']]['targets'][v_meta['idx']]
+        y = self.video_data[v_meta['filename']]['targets'][v_meta['idx']][:20] #TODO
+        y = np.pad(y.squeeze(), (0, min(20, abs(len(y) - 20))), mode='edge') #TODO
 
         return [torch.FloatTensor(a_features), torch.FloatTensor(v_features)], y, [sample_info]
             
@@ -188,11 +208,12 @@ if __name__ == "__main__":
         
     # EXPR
     for ds in ds_names:
-        amed = AbawMultimodalExprDataset(audio_features_path='/media/maxim/WesternDigital/ABAWLogs/EXPR/expr_devel.pickle',
-                                         video_features_path='/media/maxim/WesternDigital/ABAWLogs/EXPR/expr_devel.pickle',
+        amed = AbawMultimodalExprDataset(audio_features_path='/media/maxim/WesternDigital/ABAWLogs/EXPR/audio_features/expr_devel.pickle',
+                                         video_features_path='/media/maxim/WesternDigital/ABAWLogs/EXPR/Dynamic_features_exp_new2/dynamic_features_facial_exp.pkl',
                                          labels_root=labels_root,
                                          label_filenames=metadata_info[ds]['label_filenames'],
                                          dataset=metadata_info[ds]['dataset'],
+                                         audio_train_features_path='/media/maxim/WesternDigital/ABAWLogs/EXPR/audio_features/expr_train.pickle',
                                          shift=2, min_w_len=2, max_w_len=4)
 
         dl = torch.utils.data.DataLoader(amed, batch_size=8, shuffle=False, num_workers=8)
