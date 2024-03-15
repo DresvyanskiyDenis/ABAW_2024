@@ -15,7 +15,7 @@ class TestModel(torch.nn.Module):
         self.v_f_size = v_f_size
         self.av_f_size = av_f_size
 
-        self.out_size = num_classes
+        self.num_classes = num_classes
 
         self.a_downsample = torch.nn.Linear(self.a_f_size, self.av_f_size)
 

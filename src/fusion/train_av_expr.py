@@ -166,8 +166,8 @@ def run_expression_training() -> None:
     """Wrapper for training expression challenge
     """
     
-    model_cls = [final_fusion_model_v1]
-    #model_cls = [TestModel]
+    # model_cls = [final_fusion_model_v1]
+    model_cls = [TestModel]
     
     for augmentation in [False]:
         for m_cls in model_cls:

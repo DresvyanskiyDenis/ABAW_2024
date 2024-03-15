@@ -5,9 +5,9 @@ import pandas as pd
 import torch
 from scipy.special import softmax
 
-from src.evaluation_dynamic import __average_predictions_on_timesteps, __interpolate_to_100_fps, \
+from evaluation_dynamic import __average_predictions_on_timesteps, __interpolate_to_100_fps, \
     __synchronize_predictions_with_ground_truth, __apply_hamming_smoothing
-from src.video.preprocessing.labels_preprocessing import load_AffWild2_labels
+from video.preprocessing.labels_preprocessing import load_AffWild2_labels
 
 
 def load_labels(path_to_labels: str, challenge:str, video_to_fps:dict)->pd.DataFrame:
