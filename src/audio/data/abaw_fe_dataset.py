@@ -222,19 +222,28 @@ class AbawFEDataset(Dataset):
             - Forms metadata and labels
             - Forms expr label statistics
         """
+        print('h')
         for label_file_name in sorted(self.label_filenames):
             if '.DS_Store' in label_file_name:
                 continue
             
             if self.labels_va_root:
                 va_label_file_path = os.path.join(self.labels_va_root, self.dataset, label_file_name)
-                va_labs = pd.read_csv(va_label_file_path, sep=',', names=['valence', 'arousal'], header=0)
+                if os.path.exists(va_label_file_path):
+                    va_labs = pd.read_csv(va_label_file_path, sep=',', names=['valence', 'arousal'], header=0)
+                else:
+                    _, num_frames = self.find_corresponding_video_info(label_file_name)
+                    va_labs = pd.DataFrame(data=np.full((int(num_frames), 2), -6), columns=['valence', 'arousal'])
             else:
                 va_labs = pd.DataFrame()
 
             if self.labels_expr_root:
                 expr_label_file_path = os.path.join(self.labels_expr_root, self.dataset, label_file_name)
-                expr_labs = pd.read_csv(expr_label_file_path, sep='.', names=['expr'], header=0)
+                if os.path.exists(expr_label_file_path):
+                    expr_labs = pd.read_csv(expr_label_file_path, sep='.', names=['expr'], header=0)
+                else:
+                    _, num_frames = self.find_corresponding_video_info(label_file_name)
+                    expr_labs = pd.DataFrame(data=np.full((int(num_frames), 1), -2), columns=['expr'])
             else:
                 expr_labs = pd.DataFrame()
 

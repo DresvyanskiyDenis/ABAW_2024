@@ -39,15 +39,19 @@ def feature_extraction(model_params: dict, config: dict, problem_type: ProblemTy
     c_names = ['Neutral', 'Anger', 'Disgust', 'Fear', 'Happiness', 'Sadness', 'Surprise', 'Other']
 
     ds_names = {
-        'train': 'train', 
-        'devel': 'validation'
+        # 'train': 'train', 
+        # 'devel': 'validation'
+        'test': 'test'
     }
+
+    with open(os.path.join(labels_root, '{0}_test_set_release.txt'.format('expr' if problem_type == ProblemType.CLASSIFICATION else 'va'))) as file:
+        test_files = ['{0}.txt'.format(line.rstrip()) for line in file]
     
     metadata_info = {}
     all_transforms = {}
     for ds in ds_names:
         metadata_info[ds] = {
-            'label_filenames': os.listdir(os.path.join(labels_root, '{0}_Set'.format(ds_names[ds].capitalize()))),
+            'label_filenames': test_files if ds == 'test' else os.listdir(os.path.join(labels_root, '{0}_Set'.format(ds_names[ds].capitalize()))),
             'dataset': '{0}_Set'.format(ds_names[ds].capitalize()),
         }
 
