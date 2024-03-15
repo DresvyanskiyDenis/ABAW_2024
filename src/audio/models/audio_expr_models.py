@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append('src/audio')
+sys.path.append('src')
 
 import numpy as np
 import torch
@@ -13,7 +13,7 @@ from transformers.models.wav2vec2.modeling_wav2vec2 import (
 )
  
 
-from models.attention_layers import TransformerLayer
+from audio.models.attention_layers import TransformerLayer
 
 
 class ExprModelV1(Wav2Vec2PreTrainedModel):

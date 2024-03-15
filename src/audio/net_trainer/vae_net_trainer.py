@@ -10,9 +10,9 @@ import torch
 import torch.nn.functional as F
 from tensorboardX import SummaryWriter
 
-from utils.accuracy_utils import conf_matrix
-from visualization.visualize import plot_conf_matrix
-from utils.common_utils import create_logger
+from audio.utils.accuracy_utils import conf_matrix
+from audio.visualization.visualize import plot_conf_matrix
+from audio.utils.common_utils import create_logger
 
 
 class ProblemType(Enum):

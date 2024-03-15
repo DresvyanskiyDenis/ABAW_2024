@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append('../src')
+sys.path.append('src')
 
 import os
 import pprint
@@ -12,22 +12,22 @@ import numpy as np
 import torch
 from torchvision import transforms
 
-from config import config_va
+from audio.config import config_va
 
-from augmentation.wave_augmentation import RandomChoice, PolarityInversion, WhiteNoise, Gain
+from audio.augmentation.wave_augmentation import RandomChoice, PolarityInversion, WhiteNoise, Gain
 
-from data.abaw_vae_dataset import AbawVAEDataset, VAEGrouping
+from audio.data.abaw_vae_dataset import AbawVAEDataset, VAEGrouping
 
-from net_trainer.net_trainer import NetTrainer, ProblemType
+from audio.net_trainer.net_trainer import NetTrainer, ProblemType
 
-from loss.loss import VALoss
+from audio.loss.loss import VALoss
 
-from models.audio_va_models import VAModelV1, VAModelV2, VAModelV3
+from audio.models.audio_va_models import VAModelV1, VAModelV2, VAModelV3
 
-from utils.data_utils import get_source_code
+from audio.utils.data_utils import get_source_code
 
-from utils.accuracy_utils import va_score, v_score, a_score
-from utils.common_utils import define_seed
+from audio.utils.accuracy_utils import va_score, v_score, a_score
+from audio.utils.common_utils import define_seed
         
 
 def main(config: dict) -> None:

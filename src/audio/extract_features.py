@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append('../src')
+sys.path.append('src')
 
 import os
 import pickle
@@ -10,17 +10,17 @@ import numpy as np
 
 import torch
 
-from config import config_expr, config_va
+from audio.config import config_expr, config_va
 
-from data.abaw_fe_dataset import AbawFEDataset, VAEGrouping
+from audio.data.abaw_fe_dataset import AbawFEDataset, VAEGrouping
 
-from net_trainer.net_trainer import NetTrainer, ProblemType
+from audio.net_trainer.net_trainer import NetTrainer, ProblemType
 
-from models.audio_expr_models import ExprModelV3
-from models.audio_va_models import VAModelV3
+from audio.models.audio_expr_models import ExprModelV3
+from audio.models.audio_va_models import VAModelV3
 
-from utils.accuracy_utils import recall, precision, f1
-from utils.common_utils import define_seed
+from audio.utils.accuracy_utils import recall, precision, f1
+from audio.utils.common_utils import define_seed
 
 
 def feature_extraction(model_params: dict, config: dict, problem_type: ProblemType) -> None:

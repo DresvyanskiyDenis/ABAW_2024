@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append('../src')
+sys.path.append('src')
 
 import os
 import pprint
@@ -12,22 +12,22 @@ import numpy as np
 import torch
 from torchvision import transforms
 
-from config import config_vae
+from audio.config import config_vae
 
-from augmentation.wave_augmentation import RandomChoice, PolarityInversion, WhiteNoise, Gain
+from audio.augmentation.wave_augmentation import RandomChoice, PolarityInversion, WhiteNoise, Gain
 
-from data.abaw_vae_dataset import AbawVAEDataset, form_train_dataset, VAEGrouping
+from audio.data.abaw_vae_dataset import AbawVAEDataset, form_train_dataset, VAEGrouping
 
-from net_trainer.vae_net_trainer import VAENetTrainer as NetTrainer
+from audio.net_trainer.vae_net_trainer import VAENetTrainer as NetTrainer
 
-from loss.loss import VALoss, SoftFocalLoss, SoftFocalLossWrapper
+from audio.loss.loss import VALoss, SoftFocalLoss, SoftFocalLossWrapper
 
-from models.audio_vae_models import VAEModelV1, VAEModelV2, VAEModelV3
+from audio.models.audio_vae_models import VAEModelV1, VAEModelV2, VAEModelV3
 
-from utils.data_utils import get_source_code
+from audio.utils.data_utils import get_source_code
 
-from utils.accuracy_utils import recall, precision, f1, va_score, v_score, a_score
-from utils.common_utils import define_seed
+from audio.utils.accuracy_utils import recall, precision, f1, va_score, v_score, a_score
+from audio.utils.common_utils import define_seed
         
 
 def main(config: dict) -> None:

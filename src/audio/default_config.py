@@ -1,10 +1,10 @@
 import sys
 
-sys.path.append('../src')
+sys.path.append('src')
 
-from models.audio_expr_models import *
-from models.audio_va_models import *
-from models.audio_vae_models import *
+from audio.models.audio_expr_models import *
+from audio.models.audio_va_models import *
+from audio.models.audio_vae_models import *
 
 config_expr: dict = {
     'WAV_ROOT': '',

@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append('src/audio')
+sys.path.append('src')
 
 import os
 from enum import Enum
@@ -16,8 +16,8 @@ import torchvision
 from torch.utils.data import Dataset
 from transformers import Wav2Vec2Processor
 
-from config import *
-from utils.common_utils import round_math, array_to_bytes, bytes_to_array
+from audio.config import *
+from audio.utils.common_utils import round_math, array_to_bytes, bytes_to_array
 
 
 class VAEGrouping(Enum):
