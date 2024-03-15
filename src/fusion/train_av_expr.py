@@ -25,7 +25,7 @@ from fusion.models.fusion_models import final_fusion_model_v1
 
 from audio.utils.data_utils import get_source_code
 
-from fusion.evaluation_fusion import evaluate_model_full_fps
+# from fusion.evaluation_fusion import evaluate_model_full_fps
 
 from audio.utils.accuracy_utils import recall, precision, f1
 from audio.utils.common_utils import define_seed
@@ -127,8 +127,7 @@ def main(config: dict) -> None:
             shuffle=('train' in ds),
             num_workers=batch_size if batch_size < 9 else 8)
         
-    # model = model_cls(**model_params)
-    model = final_fusion_model_v1(num_classes=len(c_names))
+    model = model_cls(**model_params)
     model.to(device)
     
     class_sample_count = datasets['train'].datasets[0].expr_labels_counts

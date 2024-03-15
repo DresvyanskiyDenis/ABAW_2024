@@ -16,8 +16,20 @@ class TestModel(torch.nn.Module):
         self.av_f_size = av_f_size
 
         self.out_size = out_size
-                        
+
         self.a_downsample = torch.nn.Linear(self.a_f_size, self.av_f_size)
+
+        self.v_downsample = torch.nn.Sequential(
+            torch.nn.Conv1d(self.v_f_size, self.v_f_size, kernel_size=5, stride=3, dilation=2),
+            torch.nn.BatchNorm1d(self.v_f_size),
+            torch.nn.AdaptiveAvgPool1d(20),
+            torch.nn.ReLU(),
+
+            torch.nn.Conv1d(self.v_f_size, self.v_f_size, kernel_size=5, stride=2),
+            torch.nn.BatchNorm1d(self.v_f_size),
+            torch.nn.AdaptiveAvgPool1d(4),
+            torch.nn.ReLU(),
+        )
         
         self.attention_fusion_model = AttentionFusionModel(self.av_f_size, self.av_f_size, out_size=self.av_f_size)
         
@@ -26,19 +38,16 @@ class TestModel(torch.nn.Module):
     def forward(self, x):
         x_a, x_v = x
 
-        x_a = self.__pad(x_a, x_v.shape[1])
         a_f = self.a_downsample(x_a)
-    
-        x = self.attention_fusion_model(a_f, x_v)
-        x = self.classifier(x)
-        return x
 
-    def __pad(self, sequence, needed_length):
-        # (batch_size, seq_len, input_dim)
-        if sequence.shape[1] > needed_length:
-            return sequence[:needed_length]
-        else:
-            return torch.cat([sequence, torch.zeros(sequence.shape[0], needed_length - sequence.shape[1], sequence.shape[2], device='cuda:0')], dim=1)
+        x_v = x_v.permute(0, 2, 1)
+        v_f = self.v_downsample(x_v)
+        v_f = v_f.permute(0, 2, 1)
+
+        x = self.attention_fusion_model(a_f, v_f)
+        x = self.classifier(x)
+        x = x.repeat(1, 5, 1)
+        return x
 
 
 class StatPoolLayer(torch.nn.Module):
