@@ -93,43 +93,81 @@ class final_fusion_model_v2(nn.Module):
         self.positional_encoding_video = PositionalEncoding(d_model=256, dropout=0.1, max_len=video_shape[0])
 
         self.fusion_layer_1 = MultiHeadAttention(input_dim_query=256, input_dim_keys=256, input_dim_values=256,
-                                                      num_heads=16, dropout = 0.1,
-                                                      masking_strategy= 'padding')
-        self.batch_norm_1 = nn.BatchNorm1d(256)
+                                                 num_heads=16, dropout=0.1,
+                                                 masking_strategy='padding')
+
         self.fusion_layer_2 = MultiHeadAttention(input_dim_query=256, input_dim_keys=256, input_dim_values=256,
-                                                        num_heads=16, dropout = 0.1,
-                                                        masking_strategy= 'padding')
+                                                 num_heads=16, dropout=0.1,
+                                                 masking_strategy='padding')
+
+        self.fusion_layer_3 = MultiHeadAttention(input_dim_query=256, input_dim_keys=256, input_dim_values=256,
+                                                 num_heads=16, dropout=0.1,
+                                                 masking_strategy='padding')
+
+        self.fusion_layer_4 = MultiHeadAttention(input_dim_query=256, input_dim_keys=256, input_dim_values=256,
+                                                 num_heads=16, dropout=0.1,
+                                                 masking_strategy='padding')
+
+        self.batch_norm_1 = nn.BatchNorm1d(256)
         self.batch_norm_2 = nn.BatchNorm1d(256)
+        self.batch_norm_3 = nn.BatchNorm1d(256)
+        self.batch_norm_4 = nn.BatchNorm1d(256)
 
         if num_classes is not None:
             self.output_layer = nn.Linear(256, num_classes)
         elif num_regression_neurons is not None:
             self.output_layer = nn.Linear(256, num_regression_neurons)
 
-
-
     def forward(self, features):
-        audio, video = features # audio (batch_size, 4, 1024), video (batch_size, 20, 256)
-        # pass audio through downsampling
+        audio, video = features  # audio (batch_size, 4, 1024), video (batch_size, 20, 256)
+        # pass audio through GRU
         audio = self.audio_feature_down_sampling(audio)
         # add positional encodings to audio and video
         audio = self.positional_encoding_audio(audio)
         video = self.positional_encoding_video(video)
-        # concat audio and video along time dimension
-        fused_features = torch.cat([audio, video], dim=1)
+        # pad audio to the same length as video
+        audio = self.__pad(audio, self.video_shape[0])
+        # generate mask for audio
+        audio_mask = self.__generate_mask(audio)
         # pass through fusion layer
-        fused_features = self.fusion_layer_1(queries = fused_features, keys=fused_features, values = fused_features)
+        fused_features = self.fusion_layer_1(queries=video, keys=audio, values=audio, mask=audio_mask)
         fused_features = fused_features.permute(0, 2, 1)
         fused_features = self.batch_norm_1(fused_features)
         fused_features = fused_features.permute(0, 2, 1)
         # second fusion
-        fused_features = self.fusion_layer_2(queries = fused_features, keys=fused_features, values = fused_features)
+        fused_features = self.positional_encoding_video(fused_features)
+        fused_features = self.fusion_layer_2(queries=fused_features, keys=audio, values=audio, mask=audio_mask)
         fused_features = fused_features.permute(0, 2, 1)
         fused_features = self.batch_norm_2(fused_features)
+        fused_features = fused_features.permute(0, 2, 1)
+        # third fusion
+        fused_features = self.positional_encoding_video(fused_features)
+        fused_features = self.fusion_layer_3(queries=fused_features, keys=video, values=video)
+        fused_features = fused_features.permute(0, 2, 1)
+        fused_features = self.batch_norm_3(fused_features)
+        fused_features = fused_features.permute(0, 2, 1)
+        # fourth fusion
+        fused_features = self.positional_encoding_video(fused_features)
+        fused_features = self.fusion_layer_4(queries=fused_features, keys=video, values=video)
+        fused_features = fused_features.permute(0, 2, 1)
+        fused_features = self.batch_norm_4(fused_features)
         fused_features = fused_features.permute(0, 2, 1)
         # pass through output layer
         output = self.output_layer(fused_features)
         return output
+
+    def __pad(self, sequence, needed_length):
+        # (batch_size, seq_len, input_dim)
+        if sequence.shape[1] > needed_length:
+            return sequence[:needed_length]
+        else:
+            return torch.cat([sequence,
+                              torch.zeros(sequence.shape[0], needed_length - sequence.shape[1], sequence.shape[2],
+                                          device=sequence.device)], dim=1)
+
+    def __generate_mask(self, sequence):
+        # generates mask for the values that are all ZERO across one timestep (dimension with idx 1)
+        return ~(sequence.sum(dim=2) == 0)
 
 
 class final_fusion_model_v3(nn.Module):

@@ -25,7 +25,8 @@ from fusion.data.abaw_av_expr_dataset import AbawMultimodalExprDataset
 from fusion.net_trainer.net_trainer import NetTrainer, ProblemType
 
 from fusion.models.av_expr_models import TestModel
-from fusion.models.fusion_models import final_fusion_model_v1
+from fusion.models.fusion_models import final_fusion_model_v1, final_fusion_model_v5, final_fusion_model_v4, \
+    final_fusion_model_v3, final_fusion_model_v2
 
 from audio.utils.data_utils import get_source_code
 
@@ -141,7 +142,7 @@ def main(config: dict) -> None:
     loss = torch.nn.CrossEntropyLoss(weight=class_weights, label_smoothing=.2)
     #loss = SoftFocalLossWrapper(focal_loss=SoftFocalLoss(alpha=class_weights), num_classes=len(c_names))
     
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
 
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
                                                                      T_0=10, T_mult=1,
@@ -165,16 +166,17 @@ def main(config: dict) -> None:
 def run_expression_training() -> None:
     """Wrapper for training expression challenge
     """
-    
-    # model_cls = [final_fusion_model_v1]
-    model_cls = [TestModel]
+
+    model_cls = [TestModel, final_fusion_model_v1, final_fusion_model_v2, final_fusion_model_v3, final_fusion_model_v4, final_fusion_model_v5]
+    model_params = [{}, {"num_classes":8}, {"num_classes":8}, {"num_classes":8}, {"num_classes":8}, {"num_classes":8}]
+
     
     for augmentation in [False]:
-        for m_cls in model_cls:
+        for m_cls, m_params in zip(model_cls, model_params):
             cfg = deepcopy(config_expr)
             cfg['AUGMENTATION'] = augmentation
             cfg['MODEL_PARAMS']['model_cls'] = m_cls
-                
+            cfg['MODEL_PARAMS']['model_params'] = m_params
             main(cfg)
 
 
