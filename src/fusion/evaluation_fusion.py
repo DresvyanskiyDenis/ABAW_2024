@@ -25,14 +25,15 @@ def load_labels(path_to_labels: str, challenge:str, video_to_fps:dict)->pd.DataF
 
 
 
-def evaluate_model_full_fps(predictions:List[np.ndarray], sample_info:List[dict], path_to_labels:str)->Tuple[np.ndarray, np.ndarray]:
+def evaluate_model_full_fps(targets, predicts:List[np.ndarray], sample_info:List[dict])->Tuple[np.ndarray, np.ndarray]:
+    targets = None
     # get unique values of filenames in sample_info
-    video_to_fps = {sample['video_name']: sample['fps'] for sample in sample_info}
+    video_to_fps = {sample['video_name']: float(sample['fps']) for sample in sample_info}
     # load dev labels
-    dev_labels = load_labels(path_to_labels, challenge=sample_info[0]['challenge'], video_to_fps=video_to_fps)
+    dev_labels = load_labels(sample_info[0]['path_to_labels'], challenge=sample_info[0]['challenge'], video_to_fps=video_to_fps)
     # divide predictions on video level
     video_predictions = {sample['video_name']: [] for sample in sample_info}
-    for prediction, sample in zip(predictions, sample_info):
+    for prediction, sample in zip(predicts, sample_info):
         timestep_start = sample['timestep_start']
         timestep_end = sample['timestep_end']
         frame_start = sample['frame_start']
@@ -89,5 +90,5 @@ def evaluate_model_full_fps(predictions:List[np.ndarray], sample_info:List[dict]
     all_timesteps = np.concatenate(all_timesteps)
     all_labels = np.concatenate(all_labels)
     all_labels_timesteps = np.concatenate(all_labels_timesteps)
-    return all_predictions, all_labels
+    return all_labels, all_predictions, None
 

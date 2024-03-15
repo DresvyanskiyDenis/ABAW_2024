@@ -346,8 +346,8 @@ class NetTrainer:
 
             # statistics
             if self.loss and len(labs[labels_mask]) > 0:
-                running_loss += loss_value.item() * len(labs[labels_mask])
-            
+                running_loss += loss_value.item()
+
             if isinstance(labs, list):
                 labs = [d.cpu().numpy() for d in labs]
             else:

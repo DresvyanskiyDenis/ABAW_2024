@@ -1,5 +1,8 @@
 import sys
 
+from audio.loss.loss import SoftFocalLossWrapper, SoftFocalLoss
+from fusion.evaluation_fusion import evaluate_model_full_fps
+
 sys.path.append('src')
 
 import os
@@ -10,6 +13,7 @@ from copy import deepcopy
 import numpy as np
 
 import torch
+torch.multiprocessing.set_sharing_strategy('file_system')
 from torchvision import transforms
 
 from sklearn.model_selection import train_test_split
@@ -57,14 +61,15 @@ def main(config: dict) -> None:
         'devel': 'validation'
     }
 
-    validation_files = os.listdir(os.path.join(labels_root, '{0}_Set'.format(ds_names['devel'].capitalize())))
-    tts = train_test_split(validation_files, test_size=0.2, random_state=0)
+    #validation_files = os.listdir(os.path.join(labels_root, '{0}_Set'.format(ds_names['devel'].capitalize())))
+    #tts = train_test_split(validation_files, test_size=0.2, random_state=0)
     
     metadata_info = {}
     all_transforms = {}
     for ds in ds_names:
         metadata_info[ds] = {
-            'label_filenames': tts[0] if 'train' in ds else tts[1],
+            'audio_features_path': os.path.join(audio_features_path, 'expr_{0}.pickle'.format(ds)),
+            'label_filenames': os.listdir(os.path.join(labels_root, '{0}_Set'.format(ds_names[ds].capitalize()))),#tts[0] if 'train' in ds else tts[1],
             'dataset': '{0}_Set'.format(ds_names[ds].capitalize()),
         }
 
@@ -85,7 +90,7 @@ def main(config: dict) -> None:
     for ds in ds_names:
         if 'train' in ds:
             datasets[ds] = torch.utils.data.ConcatDataset([                   
-                AbawMultimodalExprDataset(audio_features_path=audio_features_path,
+                AbawMultimodalExprDataset(audio_features_path=metadata_info[ds]['audio_features_path'],
                                           video_features_path=video_features_path,
                                           labels_root=os.path.join(labels_root, '{0}_Set'.format(ds_names['devel'].capitalize())),
                                           label_filenames=metadata_info[ds]['label_filenames'],
@@ -95,7 +100,7 @@ def main(config: dict) -> None:
                 ]
             )
         else:
-            datasets[ds] = AbawMultimodalExprDataset(audio_features_path=audio_features_path,
+            datasets[ds] = AbawMultimodalExprDataset(audio_features_path=metadata_info[ds]['audio_features_path'],
                                                      video_features_path=video_features_path,
                                                      labels_root=os.path.join(labels_root, '{0}_Set'.format(ds_names['devel'].capitalize())),
                                                      label_filenames=metadata_info[ds]['label_filenames'],
@@ -116,7 +121,7 @@ def main(config: dict) -> None:
                              c_names=c_names,
                              metrics=[f1, recall, precision],
                              device=device,
-                             group_predicts_fn=None, # TODO
+                             group_predicts_fn=evaluate_model_full_fps, # TODO
                              source_code=source_code)
         
     dataloaders = {}
@@ -132,10 +137,11 @@ def main(config: dict) -> None:
     
     class_sample_count = datasets['train'].datasets[0].expr_labels_counts
     class_weights = torch.Tensor(max(class_sample_count) / class_sample_count).to(device)
+    #class_weights = class_weights/class_weights.sum()
     loss = torch.nn.CrossEntropyLoss(weight=class_weights, label_smoothing=.2)
-    # loss = SoftFocalLossWrapper(focal_loss=SoftFocalLoss(alpha=class_weights), num_classes=len(c_names))
+    #loss = SoftFocalLossWrapper(focal_loss=SoftFocalLoss(alpha=class_weights), num_classes=len(c_names))
     
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
                                                                      T_0=10, T_mult=1,
@@ -160,7 +166,7 @@ def run_expression_training() -> None:
     """Wrapper for training expression challenge
     """
     
-    model_cls = [TestModel]
+    model_cls = [final_fusion_model_v1]
     
     for augmentation in [False]:
         for m_cls in model_cls:

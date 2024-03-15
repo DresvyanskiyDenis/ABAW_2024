@@ -20,5 +20,5 @@ config_expr: dict = {
     },
     'AUGMENTATION': False,
     'NUM_EPOCHS': 100,
-    'BATCH_SIZE': 16,
+    'BATCH_SIZE': 32,
 }
