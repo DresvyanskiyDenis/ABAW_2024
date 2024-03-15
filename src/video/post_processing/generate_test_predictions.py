@@ -57,6 +57,8 @@ def process_all_videos_static_test(config, videos:List[str]):
     # go over videos
     for video in tqdm(videos):
         videofile_name = video+".mp4" if video+".mp4" in os.listdir(path_to_data) else video+".avi"
+        if os.path.exists(os.path.join(config["output_static_features"], f"{os.path.basename(video)}.csv")):
+            continue
         # process one video with static models
         metadata_static = process_one_video_static(path_to_video=os.path.join(path_to_data, videofile_name),
                                                    face_detector=face_detector, pose_detector=pose_detector,
