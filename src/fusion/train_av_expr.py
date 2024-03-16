@@ -111,7 +111,7 @@ def main(config: dict) -> None:
     define_seed(0)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
-    experiment_name = 'Pose-wCELS{0}{1}-{2}'.format('a-' if aug else '-',
+    experiment_name = 'BiModal-wCELS{0}{1}-{2}'.format('a-' if aug else '-',
                                           model_cls.__name__.replace('-', '_').replace('/', '_'),
                                           datetime.datetime.now().strftime("%Y.%m.%d-%H.%M.%S"))
         

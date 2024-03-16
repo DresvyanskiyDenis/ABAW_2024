@@ -339,7 +339,11 @@ class NetTrainer:
 
                 # backward + optimize only if in training phase
                 if ('train' in phase) and self.loss and len(labs[labels_mask]) > 0:
+                    # multiply loss by 100
+                    loss_value = loss_value * 100
                     loss_value.backward()
+                    # gradient clipping
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0, norm_type=2)
                     self.optimizer.step()
                     if self.optimizer:
                         self.scheduler.step(epoch + idx / iters)
