@@ -8,9 +8,9 @@ import torch.nn as nn
 
 from audio.models.attention_layers import *
 
-class TestModel(torch.nn.Module):
+class TestModelV1(torch.nn.Module):
     def __init__(self, a_f_size=1024, v_f_size=256, av_f_size=256, num_classes=8):
-        super(TestModel, self).__init__()
+        super(TestModelV1, self).__init__()
         self.a_f_size = a_f_size
         self.v_f_size = v_f_size
         self.av_f_size = av_f_size
@@ -18,6 +18,7 @@ class TestModel(torch.nn.Module):
         self.num_classes = num_classes
 
         self.a_downsample = torch.nn.Linear(self.a_f_size, self.av_f_size)
+        self.a_relu = torch.nn.ReLU()
 
         self.v_downsample = torch.nn.Sequential(
             torch.nn.Conv1d(self.v_f_size, self.v_f_size, kernel_size=5, stride=3, dilation=2),
@@ -39,6 +40,7 @@ class TestModel(torch.nn.Module):
         x_a, x_v = x
 
         a_f = self.a_downsample(x_a)
+        a_f = self.a_relu(a_f)
 
         x_v = x_v.permute(0, 2, 1)
         v_f = self.v_downsample(x_v)
@@ -47,6 +49,40 @@ class TestModel(torch.nn.Module):
         x = self.attention_fusion_model(a_f, v_f)
         x = self.classifier(x)
         x = torch.concat([x[:,i,:].unsqueeze(1).repeat(1, 5, 1) for i in range(4)], dim=1)
+        return x
+
+
+class TestModelV2(torch.nn.Module):
+    def __init__(self, a_f_size=1024, v_f_size=256, av_f_size=256, num_classes=8):
+        super(TestModelV2, self).__init__()
+        self.a_f_size = a_f_size
+        self.v_f_size = v_f_size
+        self.av_f_size = av_f_size
+
+        self.num_classes = num_classes
+
+        self.a_conv1 = torch.nn.Conv1d(4, 20, kernel_size=1)
+        self.a_bn1 = torch.nn.BatchNorm1d(self.a_f_size)
+        self.a_relu = torch.nn.ReLU()
+
+        self.a_fc1 = torch.nn.Linear(self.a_f_size, self.av_f_size)
+        
+        self.attention_fusion_model = AttentionFusionModel(self.av_f_size, self.av_f_size, out_size=self.av_f_size)
+        
+        self.classifier = torch.nn.Linear(self.av_f_size, self.num_classes)
+
+    def forward(self, x):
+        x_a, x_v = x
+
+        a_f = self.a_conv1(x_a)
+        a_f = a_f.permute(0, 2, 1)
+        a_f = self.a_relu(self.a_bn1(a_f))
+        a_f = a_f.permute(0, 2, 1)
+    
+        a_f = self.a_relu(self.a_fc1(a_f))
+
+        x = self.attention_fusion_model(a_f, x_v)
+        x = self.classifier(x)
         return x
 
 
@@ -120,7 +156,7 @@ if __name__ == "__main__":
     sampling_rate = 16000
     inp_a = torch.zeros((4, 4, 1024))
     inp_v = torch.zeros((4, 20, 256))
-    model = TestModel(a_f_size=1024, v_f_size=256, av_f_size=256, out_size=8)
+    model = TestModelV1(a_f_size=1024, v_f_size=256, av_f_size=256, num_classes=8)
 
     res = model((inp_a, inp_v))
     print(res)
