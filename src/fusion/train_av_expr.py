@@ -20,7 +20,7 @@ from sklearn.model_selection import train_test_split
 
 from fusion.config import config_expr
 
-from fusion.data.abaw_av_expr_dataset import AbawMultimodalExprDataset
+from fusion.data.abaw_av_expr_dataset import AbawMultimodalExprDataset, AbawMultimodalExprWithNormDataset
 
 from fusion.net_trainer.net_trainer import NetTrainer, ProblemType
 
@@ -62,9 +62,6 @@ def main(config: dict) -> None:
         'devel': 'validation'
     }
 
-    #validation_files = os.listdir(os.path.join(labels_root, '{0}_Set'.format(ds_names['devel'].capitalize())))
-    #tts = train_test_split(validation_files, test_size=0.2, random_state=0)
-    
     metadata_info = {}
     all_transforms = {}
     for ds in ds_names:
@@ -91,28 +88,30 @@ def main(config: dict) -> None:
     for ds in ds_names:
         if 'train' in ds:
             datasets[ds] = torch.utils.data.ConcatDataset([                   
-                AbawMultimodalExprDataset(audio_features_path=metadata_info[ds]['audio_features_path'],
-                                          video_features_path=video_features_path,
-                                          labels_root=os.path.join(labels_root, '{0}_Set'.format(ds_names[ds].capitalize())),
-                                          label_filenames=metadata_info[ds]['label_filenames'],
-                                          dataset=metadata_info[ds]['dataset'],
-                                          audio_train_features_path=audio_train_features_path,
-                                          shift=2, min_w_len=2, max_w_len=4, transform=t) for t in all_transforms[ds]
+                AbawMultimodalExprWithNormDataset(audio_features_path=metadata_info[ds]['audio_features_path'],
+                                                  video_features_path=video_features_path,
+                                                  labels_root=os.path.join(labels_root, '{0}_Set'.format(ds_names[ds].capitalize())),
+                                                  label_filenames=metadata_info[ds]['label_filenames'],
+                                                  dataset=metadata_info[ds]['dataset'],
+                                                  audio_train_features_path=audio_train_features_path,
+                                                  normalizer=[None, None] if 'train' in ds else [datasets['train'].datasets[0].a_normalizer, datasets['train'].datasets[0].v_normalizer],
+                                                  shift=2, min_w_len=2, max_w_len=4, transform=t) for t in all_transforms[ds]
                 ]
             )
         else:
-            datasets[ds] = AbawMultimodalExprDataset(audio_features_path=metadata_info[ds]['audio_features_path'],
-                                                     video_features_path=video_features_path,
-                                                     labels_root=os.path.join(labels_root, '{0}_Set'.format(ds_names[ds].capitalize())),
-                                                     label_filenames=metadata_info[ds]['label_filenames'],
-                                                     dataset=metadata_info[ds]['dataset'],
-                                                     audio_train_features_path=audio_train_features_path,
-                                                     shift=2, min_w_len=2, max_w_len=4, transform=all_transforms[ds])
+            datasets[ds] = AbawMultimodalExprWithNormDataset(audio_features_path=metadata_info[ds]['audio_features_path'],
+                                                             video_features_path=video_features_path,
+                                                             labels_root=os.path.join(labels_root, '{0}_Set'.format(ds_names[ds].capitalize())),
+                                                             label_filenames=metadata_info[ds]['label_filenames'],
+                                                             dataset=metadata_info[ds]['dataset'],
+                                                             audio_train_features_path=audio_train_features_path,
+                                                             normalizer=[None, None] if 'train' in ds else [datasets['train'].datasets[0].a_normalizer, datasets['train'].datasets[0].v_normalizer],
+                                                             shift=2, min_w_len=2, max_w_len=4, transform=all_transforms[ds])
 
     define_seed(0)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
-    experiment_name = 'wCELS{0}{1}-{2}'.format('a-' if aug else '-',
+    experiment_name = 'Pose-wCELS{0}{1}-{2}'.format('a-' if aug else '-',
                                           model_cls.__name__.replace('-', '_').replace('/', '_'),
                                           datetime.datetime.now().strftime("%Y.%m.%d-%H.%M.%S"))
         
@@ -122,7 +121,7 @@ def main(config: dict) -> None:
                              c_names=c_names,
                              metrics=[f1, recall, precision],
                              device=device,
-                             group_predicts_fn=evaluate_model_full_fps, #evaluate_model_full_fps, # TODO
+                             group_predicts_fn=evaluate_model_full_fps, 
                              source_code=source_code)
         
     dataloaders = {}
@@ -139,8 +138,8 @@ def main(config: dict) -> None:
     class_sample_count = datasets['train'].datasets[0].expr_labels_counts
     class_weights = torch.Tensor(max(class_sample_count) / class_sample_count).to(device)
     class_weights = class_weights/class_weights.sum()
-    loss = torch.nn.CrossEntropyLoss(weight=class_weights, label_smoothing=.2)
-    #loss = SoftFocalLossWrapper(focal_loss=SoftFocalLoss(alpha=class_weights), num_classes=len(c_names))
+    # loss = torch.nn.CrossEntropyLoss(weight=class_weights, label_smoothing=.2)
+    loss = SoftFocalLossWrapper(focal_loss=SoftFocalLoss(alpha=class_weights), num_classes=len(c_names))
     
     optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
 

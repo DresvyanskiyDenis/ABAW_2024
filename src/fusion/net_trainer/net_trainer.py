@@ -223,7 +223,7 @@ class NetTrainer:
                         plot_conf_matrix(cm, 
                                          labels=self.c_names_to_display if self.c_names_to_display else self.c_names,
                                          xticks_rotation=45,
-                                         title='Confusion Matrix. {0}. UAR = {1:.3f}%'.format(phase, epoch_score * 100),
+                                         title='Confusion Matrix. {0}. F1 = {1:.3f}%'.format(phase, epoch_score * 100),
                                          save_path=os.path.join(self.logging_paths['model_path'],
                                                                 '{0}.svg'.format(res_name)))
                     
@@ -232,7 +232,7 @@ class NetTrainer:
                         'epoch': epoch,
                         'model_state_dict': model.state_dict(),
                         'optimizer_state_dict': optimizer.state_dict(),
-                        'loss': loss
+                        'loss': loss.state_dict()
                     }, os.path.join(self.logging_paths['model_path'], 'epoch_{0}.pth'.format(epoch)))
                     
                     model.to(self.device)
@@ -246,7 +246,7 @@ class NetTrainer:
                         plot_conf_matrix(cm,
                                          labels=self.c_names_to_display if self.c_names_to_display else self.c_names,
                                          xticks_rotation=45,
-                                         title='Confusion Matrix. {0}. UAR = {1:.3f}%'.format(phase, epoch_score * 100),
+                                         title='Confusion Matrix. {0}. F1 = {1:.3f}%'.format(phase, epoch_score * 100),
                                          save_path=os.path.join(self.logging_paths['model_path'],
                                                                 '{0}.svg'.format(res_name)))
                 
