@@ -1,9 +1,9 @@
 import sys
 
+sys.path.append('src')
+
 from audio.loss.loss import SoftFocalLossWrapper, SoftFocalLoss
 from fusion.evaluation_fusion import evaluate_model_full_fps
-
-sys.path.append('src')
 
 import os
 import pprint
