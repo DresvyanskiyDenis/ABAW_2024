@@ -24,7 +24,7 @@ from fusion.data.abaw_av_expr_dataset import AbawMultimodalExprDataset
 
 from fusion.net_trainer.net_trainer import NetTrainer, ProblemType
 
-from fusion.models.av_expr_models import TestModel
+from fusion.models.av_expr_models import TestModelV1, TestModelV2
 from fusion.models.fusion_models import final_fusion_model_v1, final_fusion_model_v5, final_fusion_model_v4, \
     final_fusion_model_v3, final_fusion_model_v2
 
@@ -167,8 +167,8 @@ def run_expression_training() -> None:
     """Wrapper for training expression challenge
     """
 
-    model_cls = [TestModel, final_fusion_model_v1, final_fusion_model_v2, final_fusion_model_v3, final_fusion_model_v4, final_fusion_model_v5]
-    model_params = [{}, {"num_classes":8}, {"num_classes":8}, {"num_classes":8}, {"num_classes":8}, {"num_classes":8}]
+    model_cls = [TestModelV1, TestModelV2, final_fusion_model_v1, final_fusion_model_v2, final_fusion_model_v3, final_fusion_model_v4, final_fusion_model_v5]
+    model_params = [{"num_classes":8}, {"num_classes":8}, {"num_classes":8}, {"num_classes":8}, {"num_classes":8}, {"num_classes":8}, {"num_classes":8}]
 
     
     for augmentation in [False]:
