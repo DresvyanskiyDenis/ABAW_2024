@@ -707,7 +707,7 @@ if __name__ == "__main__":
         "dynamic_model_facial": "dynamic_v3",
         "normalization_face": "per-video-minmax",
         "path_dynamic_model_facial": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_valence_best.pth",
-        "input_shape": (20, 256),
+        "input_shape": (30, 256),
         "num_classes": None,
         "num_regression_neurons": 2,
         "device": torch.device("cuda"),
@@ -735,14 +735,14 @@ if __name__ == "__main__":
                                         device=config_dynamic_face_uni_modal_v["device"],
                                         batch_size=config_dynamic_face_uni_modal_v["batch_size"])
     # save using pickle
-    with open("/home/ddresvya/Data/dynamic_features_facial_valence.pkl", "wb") as file:
+    with open("/home/ddresvya/Data/features/dynamic_features_facial_valence_30.pkl", "wb") as file:
         pickle.dump(result_uni_modal_face_v, file)
 
     config_dynamic_face_uni_modal_a = {
         "dynamic_model_facial": "dynamic_v3",
         "normalization_face": "per-video-minmax",
         "path_dynamic_model_facial": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_arousal_best.pth",
-        "input_shape": (20, 256),
+        "input_shape": (30, 256),
         "num_classes": None,
         "num_regression_neurons": 2,
         "device": torch.device("cuda"),
@@ -770,50 +770,81 @@ if __name__ == "__main__":
                                         device=config_dynamic_face_uni_modal_a["device"],
                                         batch_size=config_dynamic_face_uni_modal_a["batch_size"])
     # save using pickle
-    with open("/home/ddresvya/Data/dynamic_features_facial_arousal.pkl", "wb") as file:
+    with open("/home/ddresvya/Data/features/dynamic_features_facial_arousal_30.pkl", "wb") as file:
         pickle.dump(result_uni_modal_face_a, file)
 
+    # for models with 20 window size
+    config_dynamic_face_uni_modal_v_20 = {
+        "dynamic_model_facial": "dynamic_v3",
+        "normalization_face": "per-video-minmax",
+        "path_dynamic_model_facial": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_best_valence_20.pth",
+        "input_shape": (20, 256),
+        "num_classes": None,
+        "num_regression_neurons": 2,
+        "device": torch.device("cuda"),
+        "window_size": 20,
+        "stride": 10,
+        "batch_size": 32,
+        "path_to_train_labels": "/home/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/",
+        "path_to_dev_labels": "/home/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
+        "challenge": "VA",
+        'video_to_fps': load_fps_file(os.path.join(path_to_project, "src/video/training/dynamic_models/fps.pkl"))
+    }
 
-
-
-
-
-
-        
-    """result_uni_modal_pose_va = process_all_videos_dynamic(dynamic_model_type=config_dynamic_face_uni_modal_va["dynamic_model_pose"],
-                                        path_to_weights=config_dynamic_face_uni_modal_va["path_dynamic_model_pose"],
-                                        normalization=config_dynamic_face_uni_modal_va["normalization_pose"],
-                                        embeddings_columns=[f"pose_embedding_{i}" for i in range(256)],
-                                        input_shape= config_dynamic_face_uni_modal_va["input_shape"],
-                                        num_classes=config_dynamic_face_uni_modal_va["num_classes"],
-                                        num_regression_neurons=config_dynamic_face_uni_modal_va["num_regression_neurons"],
-                                        video_to_fps=config_dynamic_face_uni_modal_va["video_to_fps"],
-                                        challenge=config_dynamic_face_uni_modal_va["challenge"],
-                                        path_to_extracted_features="/home/ddresvya/Data/features/VA/",
-                                        window_size=config_dynamic_face_uni_modal_va["window_size"],
-                                        stride=config_dynamic_face_uni_modal_va["stride"],
-                                        device=config_dynamic_face_uni_modal_va["device"],
-                                        batch_size=config_dynamic_face_uni_modal_va["batch_size"])
+    result_uni_modal_face_v_20 = process_all_videos_dynamic(
+        dynamic_model_type=config_dynamic_face_uni_modal_v_20["dynamic_model_facial"],
+        path_to_weights=config_dynamic_face_uni_modal_v_20["path_dynamic_model_facial"],
+        normalization=config_dynamic_face_uni_modal_v_20["normalization_face"],
+        embeddings_columns=[f"facial_embedding_{i}" for i in range(256)],
+        input_shape=config_dynamic_face_uni_modal_v_20["input_shape"],
+        num_classes=config_dynamic_face_uni_modal_v_20["num_classes"],
+        num_regression_neurons=config_dynamic_face_uni_modal_v_20["num_regression_neurons"],
+        video_to_fps=config_dynamic_face_uni_modal_v_20["video_to_fps"],
+        challenge=config_dynamic_face_uni_modal_v_20["challenge"],
+        path_to_extracted_features="/home/ddresvya/Data/features/VA/",
+        window_size=config_dynamic_face_uni_modal_v_20["window_size"],
+        stride=config_dynamic_face_uni_modal_v_20["stride"],
+        device=config_dynamic_face_uni_modal_v_20["device"],
+        batch_size=config_dynamic_face_uni_modal_v_20["batch_size"])
     # save using pickle
-    with open("/home/ddresvya/Data/dynamic_features_pose_va.pkl", "wb") as file:
-        pickle.dump(result_uni_modal_pose_va, file)
-        
-    result_bi_modal_face_pose_va = process_all_videos_dynamic(dynamic_model_type=config_dynamic_face_uni_modal_va["dynamic_model_fusion"],
-                                        path_to_weights=config_dynamic_face_uni_modal_va["path_dynamic_model_fusion"],
-                                        normalization=config_dynamic_face_uni_modal_va["normalization_fusion"],
-                                        embeddings_columns=([f"facial_embedding_{i}" for i in range(256)], [f"pose_embedding_{i}" for i in range(256)]),
-                                        input_shape= config_dynamic_face_uni_modal_va["input_shape"],
-                                        num_classes=config_dynamic_face_uni_modal_va["num_classes"],
-                                        num_regression_neurons=config_dynamic_face_uni_modal_va["num_regression_neurons"],
-                                        video_to_fps=config_dynamic_face_uni_modal_va["video_to_fps"],
-                                        challenge=config_dynamic_face_uni_modal_va["challenge"],
-                                        path_to_extracted_features="/home/ddresvya/Data/features/VA/",
-                                        window_size=config_dynamic_face_uni_modal_va["window_size"],
-                                        stride=config_dynamic_face_uni_modal_va["stride"],
-                                        device=config_dynamic_face_uni_modal_va["device"],
-                                        batch_size=config_dynamic_face_uni_modal_va["batch_size"])
+    with open("/home/ddresvya/Data/features/dynamic_features_facial_valence_20.pkl", "wb") as file:
+        pickle.dump(result_uni_modal_face_v_20, file)
+
+    # arousal 20
+    config_dynamic_face_uni_modal_a_20 = {
+        "dynamic_model_facial": "dynamic_v3",
+        "normalization_face": "per-video-minmax",
+        "path_dynamic_model_facial": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_best_arousal_20.pth",
+        "input_shape": (20, 256),
+        "num_classes": None,
+        "num_regression_neurons": 2,
+        "device": torch.device("cuda"),
+        "window_size": 20,
+        "stride": 10,
+        "batch_size": 32,
+        "path_to_train_labels": "/home/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/",
+        "path_to_dev_labels": "/home/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
+        "challenge": "VA",
+        'video_to_fps': load_fps_file(os.path.join(path_to_project, "src/video/training/dynamic_models/fps.pkl"))
+    }
+
+    result_uni_modal_face_a_20 = process_all_videos_dynamic(
+        dynamic_model_type=config_dynamic_face_uni_modal_a_20["dynamic_model_facial"],
+        path_to_weights=config_dynamic_face_uni_modal_a_20["path_dynamic_model_facial"],
+        normalization=config_dynamic_face_uni_modal_a_20["normalization_face"],
+        embeddings_columns=[f"facial_embedding_{i}" for i in range(256)],
+        input_shape=config_dynamic_face_uni_modal_a_20["input_shape"],
+        num_classes=config_dynamic_face_uni_modal_a_20["num_classes"],
+        num_regression_neurons=config_dynamic_face_uni_modal_a_20["num_regression_neurons"],
+        video_to_fps=config_dynamic_face_uni_modal_a_20["video_to_fps"],
+        challenge=config_dynamic_face_uni_modal_a_20["challenge"],
+        path_to_extracted_features="/home/ddresvya/Data/features/VA/",
+        window_size=config_dynamic_face_uni_modal_a_20["window_size"],
+        stride=config_dynamic_face_uni_modal_a_20["stride"],
+        device=config_dynamic_face_uni_modal_a_20["device"],
+        batch_size=config_dynamic_face_uni_modal_a_20["batch_size"])
     # save using pickle
-    with open("/home/ddresvya/Data/dynamic_features_fusion_va.pkl", "wb") as file:
-        pickle.dump(result_bi_modal_face_pose_va, file)"""
+    with open("/home/ddresvya/Data/features/dynamic_features_facial_arousal_20.pkl", "wb") as file:
+        pickle.dump(result_uni_modal_face_a_20, file)
 
 
