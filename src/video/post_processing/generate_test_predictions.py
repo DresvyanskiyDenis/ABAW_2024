@@ -65,7 +65,11 @@ def process_all_videos_static_test(config, videos:List[str]):
                                                     facial_feature_extractor=(facial_feature_extractor, facial_preprocessing_functions),
                                                     pose_feature_extractor=(pose_feature_extractor, pose_preprocessing_functions),
                                                     device=config["device"])
-        current_labels = pd.DataFrame([np.NaN]*len(metadata_static), columns=["category"])
+        # generate dummy labels
+        if config["challenge"] == "Exp":
+            current_labels = pd.DataFrame([np.NaN] * len(metadata_static), columns=["category"])
+        elif config["challenge"] == "VA":
+            current_labels = pd.DataFrame([[np.NaN, np.NaN]] * 100, columns=["valence", "arousal"])
         metadata_static = align_labels_with_metadata(metadata_static, current_labels, challenge=config["challenge"])
         # save extracted features
         metadata_static.to_csv(os.path.join(config["output_static_features"], f"{os.path.basename(video)}.csv"), index=False)
@@ -144,14 +148,18 @@ def generate_test_predictions_one_video(df_video:pd.DataFrame, challenge, window
 def generate_test_predictions_all_videos(dynamic_model_type, path_to_weights, normalization, embeddings_columns,
                                input_shape, num_classes, num_regression_neurons, video_to_fps,
                                challenge, path_to_extracted_features:str, window_size:int, stride:int, device:torch.device,
-                               output_path:str,
+                               output_path:str, path_to_sample_file,
                                batch_size:int=32):
-    # TODO: TBD as I do not know now the final format (test set has not been reliased yet)
     dynamic_model = __initialize_dynamic_model(dynamic_model_type=dynamic_model_type, path_to_weights=path_to_weights,
                                                input_shape=input_shape, num_classes=num_classes,
                                                num_regression_neurons=num_regression_neurons, challenge=challenge)
     dynamic_model = dynamic_model.to(device)
-    normalizer = MinMaxScaler() if normalization == "min_max" else StandardScaler()
+    if normalization == "min_max":
+        normalizer = MinMaxScaler()
+    elif normalization == "standard":
+        normalizer = StandardScaler()
+    else:
+        normalizer = None
     # load metadata
     metadata_static = glob.glob(os.path.join(path_to_extracted_features, "*.csv"))
     metadata_static = {os.path.basename(file).split(".")[0]: pd.read_csv(file) for file in metadata_static}
@@ -169,14 +177,18 @@ def generate_test_predictions_all_videos(dynamic_model_type, path_to_weights, no
     # concatenate embeddings columns if tuple
     feature_columns = embeddings_columns if not isinstance(embeddings_columns, tuple) else embeddings_columns[0] + \
                                                                                            embeddings_columns[1]
-    features = np.concatenate(
-        [metadata_static[video][feature_columns].dropna().values for video in metadata_static.keys()], axis=0)
-    normalizer = normalizer.fit(features)
+    if normalizer is not None:
+        features = np.concatenate(
+            [metadata_static[video][feature_columns].dropna().values for video in metadata_static.keys()], axis=0)
+        normalizer = normalizer.fit(features)
     # process all videos
     result = {}
     for video in tqdm(metadata_static.keys()):
         df = metadata_static[video]
         # normalize features
+        if normalization in ['per-video-minmax', 'per-video-standard']:
+            normalizer = MinMaxScaler() if normalization == "per-video-minmax" else StandardScaler()
+            normalizer = normalizer.fit(df[feature_columns].values)
         df.loc[:, feature_columns] = normalizer.transform(df[feature_columns].values)
         predictions = generate_test_predictions_one_video(df_video=df, challenge=challenge, window_size=window_size,
                                                             stride=stride, model=dynamic_model, feature_columns=feature_columns,
@@ -184,25 +196,34 @@ def generate_test_predictions_all_videos(dynamic_model_type, path_to_weights, no
                                                             batch_size=batch_size)
         result[video] = predictions
     # save predictions to the
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+    # read sample file
+    sample_file = pd.read_csv(path_to_sample_file)
+    sample_file["video_name"] = sample_file["image_location"].apply(lambda x: x.split("/")[0])
+    sample_file.drop(columns=["Neutral","Anger","Disgust","Fear","Happiness","Sadness","Surprise","Other"], inplace=True)
+    if challenge == "Exp":
+        labels_columns = ["category"]
+    else:
+        labels_columns = ["valence", "arousal"]
+    sample_file[labels_columns] = np.NaN
+    # fill the sample file with the predictions
     for video in result.keys():
-        path_to_save = os.path.join(output_path, f"{video}.csv")
-        df_to_write = pd.DataFrame(np.concatenate([item.reshape(-1,1) for item in result[video]], axis=1),
-                                   columns=["frame_num", "timestep"] +
-                                           ["category"] if challenge=="Exp" else ["valence", "arousal"])
-        if challenge == "Exp":
-            df_to_write = df_to_write["category"].astype("int32")
-            # write first row as string "Neutral,Anger,Disgust,Fear,Happiness,Sadness,Surprise,Other" just using some writer
-            with open(path_to_save, 'w') as f:
-                f.write("Neutral,Anger,Disgust,Fear,Happiness,Sadness,Surprise,Other\n")
-        elif challenge == "VA":
-            df_to_write = df_to_write[["valence", "arousal"]]
-            # write first row as string "valence,arousal" just using some writer
-            with open(path_to_save, 'w') as f:
-                f.write("valence,arousal\n")
-
-        df_to_write.to_csv(path_to_save, mode='a', index=False, header=False)
+        # get the predictions
+        predictions = result[video][-1]
+        # fill the sample file with the predictions
+        if predictions.shape[0] < sample_file.loc[sample_file["video_name"]==video, labels_columns].shape[0]:
+            # duplicate last prediction
+            difference = sample_file.loc[sample_file["video_name"]==video, labels_columns].shape[0] - predictions.shape[0]
+            predictions = np.concatenate([predictions, np.repeat(np.array(predictions[-1]).reshape((-1)), difference, axis=0)], axis=0)
+        assert sample_file.loc[sample_file["video_name"]==video, labels_columns].shape[0] == predictions.shape[0]
+        sample_file.loc[sample_file["video_name"]==video, labels_columns] = predictions
+    # check on NaN values
+    assert sample_file[labels_columns].isna().sum().sum() == 0
+    # save file
+    sample_file.drop(columns=["video_name"], inplace=True)
+    if challenge == "Exp":
+        sample_file["category"] = sample_file["category"].astype(int)
+        sample_file.columns = ["image_location", "Neutral,Anger,Disgust,Fear,Happiness,Sadness,Surprise,Other"]
+    sample_file.to_csv(output_path, index=False)
 
 
 
@@ -213,7 +234,7 @@ def generate_test_predictions_all_videos(dynamic_model_type, path_to_weights, no
 
 def main():
     # static Exp
-    config_static_exp = {
+    """config_static_exp = {
         "static_model_type": "ViT_b_16",
         "pose_model_type": "HRNet",
         "path_to_static_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned/Exp_challenge/AffWild2_static_exp_best_ViT.pth",
@@ -232,17 +253,17 @@ def main():
     # create output folder if not exists
     if not os.path.exists(config_static_exp["output_static_features"]):
         os.makedirs(config_static_exp["output_static_features"])
-    process_all_videos_static_test(config=config_static_exp, videos=videos_test_exp)
+    process_all_videos_static_test(config=config_static_exp, videos=videos_test_exp)"""
 
 
     # static VA
-    config_static_VA = {
+    """config_static_VA = {
         "static_model_type": "EfficientNet-B1",
         "pose_model_type": "HRNet",
         "path_to_static_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned/VA_challenge/AffWild2_static_va_best_b1.pth",
         "path_to_pose_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned/VA_challenge/AffWild2_static_va_best_HRNet.pth",
         "path_hrnet_weights": "/home/ddresvya/PhD/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
-        "output_static_features": "/nfs/scratch/ddresvya/Data/features/VA_test/",
+        "output_static_features": "/home/ddresvya/Data/features/VA_test/",
         "num_classes": None,
         "num_regression_neurons": 2,
         "device": torch.device("cuda"),
@@ -251,10 +272,10 @@ def main():
         "path_to_videos": "/home/ddresvya/Data/ABAW/"
     }
     videos_test_VA = list(np.loadtxt("/home/ddresvya/Data/test_set/names_of_videos_in_each_test_set/Valence_Arousal_Estimation_Challenge_test_set_release.txt", dtype=str).flatten())
-    process_all_videos_static_test(config=config_static_VA, videos=videos_test_VA)
+    process_all_videos_static_test(config=config_static_VA, videos=videos_test_VA)"""
 
 
-    """# make dynamic predictions
+    # make dynamic predictions
     config_dynamic_face_uni_modal_exp = {
         "dynamic_model_type": "dynamic_v3",
         "embeddings_columns": [f"facial_embedding_{i}" for i in range(256)],
@@ -269,10 +290,11 @@ def main():
         "batch_size": 32,
         "challenge": "Exp",
         'video_to_fps': load_fps_file(os.path.join(path_to_project, "src/video/training/dynamic_models/fps.pkl")),
-        'output_path': None, # TODO: add path to the output
-        'path_to_extracted_features': None # TODO: add path to the extracted features
+        'output_path': "/home/ddresvya/Data/test_set/Exp/submission_1/submission_1.csv",
+        'path_to_extracted_features': "/home/ddresvya/Data/features/Exp_test/",
+        'path_to_sample_file': "/home/ddresvya/Data/test_set/prediction_files_format/CVPR_6th_ABAW_Expr_test_set_sample.txt",
     }
-    generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_exp)"""
+    generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_exp)
 
 
 
