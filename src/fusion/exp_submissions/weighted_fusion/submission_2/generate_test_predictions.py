@@ -6,7 +6,7 @@ from typing import List, Optional
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 path_to_project = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), os.path.pardir,os.path.pardir, os.path.pardir, os.path.pardir)) + os.path.sep
+    os.path.join(os.path.dirname(__file__), os.path.pardir,os.path.pardir,os.path.pardir, os.path.pardir, os.path.pardir)) + os.path.sep
 sys.path.append(path_to_project)
 sys.path.append(path_to_project.replace("ABAW_2023_SIU", "datatools"))
 sys.path.append(path_to_project.replace("ABAW_2023_SIU", "simple-HRNet-master"))
@@ -154,6 +154,7 @@ def generate_test_predictions_all_videos(dynamic_model_type, path_to_weights, no
 
 
 
+
 def main():
     # make dynamic predictions
     config_dynamic_face_uni_modal_exp = {
@@ -175,7 +176,7 @@ def main():
     }
     generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_exp)
 
-    # valence window size 30
+    """# valence window size 30
     config_dynamic_face_uni_modal_valence_30 = {
         "dynamic_model_type": "dynamic_v3",
         "embeddings_columns": [f"facial_embedding_{i}" for i in range(256)],
@@ -253,7 +254,49 @@ def main():
         'output_path': "/home/ddresvya/Data/features/test_predictions_dynamic/dynamic_features_facial_arousal_test_20.pkl",
         'path_to_extracted_features': "/home/ddresvya/Data/features/VA_test/",
     }
-    generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_arousal_20)
+    generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_arousal_20)"""
+
+
+    # generatopn of dev predictions
+    # valence window size 30
+    config_dynamic_face_uni_modal_valence_30 = {
+        "dynamic_model_type": "dynamic_v3",
+        "embeddings_columns": [f"facial_embedding_{i}" for i in range(256)],
+        "normalization": "per-video-minmax",
+        "path_to_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_valence_best.pth",
+        "input_shape": (30, 256),
+        "num_classes": None,
+        "num_regression_neurons": 2,
+        "device": torch.device("cuda"),
+        "window_size": 30,
+        "stride": 15,
+        "batch_size": 32,
+        "challenge": "VA",
+        'video_to_fps': load_fps_file(os.path.join(path_to_project, "src/video/training/dynamic_models/fps.pkl")),
+        'output_path': "/home/ddresvya/Data/features/test_predictions_dynamic/dynamic_features_facial_valence_train_dev_30.pkl",
+        'path_to_extracted_features': "/home/ddresvya/Data/features/VA/",
+    }
+    generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_valence_30)
+
+    # arousal window size 30
+    config_dynamic_face_uni_modal_arousal_30 = {
+        "dynamic_model_type": "dynamic_v3",
+        "embeddings_columns": [f"facial_embedding_{i}" for i in range(256)],
+        "normalization": "per-video-minmax",
+        "path_to_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_arousal_best.pth",
+        "input_shape": (30, 256),
+        "num_classes": None,
+        "num_regression_neurons": 2,
+        "device": torch.device("cuda"),
+        "window_size": 30,
+        "stride": 15,
+        "batch_size": 32,
+        "challenge": "VA",
+        'video_to_fps': load_fps_file(os.path.join(path_to_project, "src/video/training/dynamic_models/fps.pkl")),
+        'output_path': "/home/ddresvya/Data/features/test_predictions_dynamic/dynamic_features_facial_arousal_train_dev_30.pkl",
+        'path_to_extracted_features': "/home/ddresvya/Data/features/VA/",
+    }
+    generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_arousal_30)
 
 
 

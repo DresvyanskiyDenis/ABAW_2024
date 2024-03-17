@@ -35,8 +35,8 @@ def get_best_fusion_rf_model(audio, video, statistical, label_values):
                                         oob_score=partial(f1_score, average="macro"),
                                         n_jobs=-1)
             rf = rf.fit(features, label_values)
-            f1 = f1_score(label_values, rf.predict(features), average="macro")
-            print(f"F1 score: {f1}")
+            #f1 = f1_score(label_values, rf.predict(features), average="macro")
+            #print(f"F1 score: {f1}")
             print(f"OOB score: {rf.oob_score_}")
             if rf.oob_score_ > best_f1:
                 best_f1 = rf.oob_score_
