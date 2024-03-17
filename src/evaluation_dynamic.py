@@ -144,7 +144,16 @@ def np_concordance_correlation_coefficient(y_true, y_pred):
     y_pred : array-like of shape (n_samples,)
         Estimated target values.
     """
-
+    if len(y_true.shape)==2:
+        if y_true.shape[1] ==1:
+            y_true = y_true.flatten()
+        else:
+            raise ValueError("y_true should be 1D array")
+    if len(y_pred.shape)==2:
+        if y_pred.shape[1] ==1:
+            y_pred = y_pred.flatten()
+        else:
+            raise ValueError("y_pred should be 1D array")
     # Raw data
     dct = {
         'y_true': y_true,
