@@ -48,10 +48,18 @@ def average_predictions_on_timesteps(predictions_dict:dict):
         frame_start = predictions_dict["frame_start"][window_idx]
         frame_end = predictions_dict["frame_end"][window_idx]
         predictions = predictions_dict["predicts"][window_idx]
+        if isinstance(predictions, list):
+            predictions = np.array(predictions)
+            assert len(predictions.shape) == 1
+            predictions = predictions.reshape((1,-1))
         num_predictions = predictions.shape[0]
         # generate timesteps for predictions
-        timesteps = np.linspace(timestep_start, timestep_end, num_predictions)
-        num_frames = np.linspace(frame_start, frame_end, num_predictions)
+        if num_predictions == 1:
+            timesteps = np.array([timestep_start + (timestep_end - timestep_start)/2.])
+            num_frames = np.array([frame_start + (frame_end - frame_start)/2.])
+        else:
+            timesteps = np.linspace(timestep_start, timestep_end, num_predictions)
+            num_frames = np.linspace(frame_start, frame_end, num_predictions)
         timesteps, num_frames = np.round(timesteps, 2), np.round(num_frames, 0)
         array_predictions.append((num_frames, timesteps, predictions))
     # average predictions on timesteps
