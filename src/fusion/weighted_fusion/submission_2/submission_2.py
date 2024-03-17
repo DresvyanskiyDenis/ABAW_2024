@@ -174,6 +174,46 @@ def load_test_sample_file_and_preprocess(path_to_sample_file:str, challenge, vid
     return result
 
 
+def generate_test_predictions(audio, video, path_to_test_sample, weights, entropy_threshold,
+                              output_path):
+    labels_columns = ["category"]
+    sample_file = pd.read_csv(path_to_test_sample)
+    sample_file["video_name"] = sample_file["image_location"].apply(lambda x: x.split("/")[0])
+    sample_file.drop(columns=["Neutral", "Anger", "Disgust", "Fear", "Happiness", "Sadness", "Surprise", "Other"],
+                     inplace=True)
+    sample_file["category"] = np.NaN
+    for video_name in video.keys():
+        audio_predictions = audio[video_name]["predictions"]
+        video_predictions = video[video_name]["predictions"]
+        video_predictions = softmax(video_predictions, axis=-1)
+        # duplicate last predictions for audio and video predictions if there are less predictions than in sample_file
+        if audio_predictions.shape[0] < sample_file.loc[sample_file["video_name"]==video_name, labels_columns].shape[0]:
+            difference = sample_file.loc[sample_file["video_name"] == video_name, labels_columns].shape[0] - \
+                         audio_predictions.shape[0]
+            audio_predictions = np.concatenate([audio_predictions,
+                                                np.repeat(np.array(audio_predictions[-1]).reshape((1,-1)), difference, axis=0)], axis=0)
+        if video_predictions.shape[0] < sample_file.loc[sample_file["video_name"] == video_name, labels_columns].shape[0]:
+            difference = sample_file.loc[sample_file["video_name"] == video_name, labels_columns].shape[0] - \
+                         video_predictions.shape[0]
+            video_predictions = np.concatenate([video_predictions,
+                                                np.repeat(np.array(video_predictions[-1]).reshape((1,-1)), difference,
+                                                          axis=0)], axis=0)
+        assert sample_file.loc[sample_file["video_name"]==video_name, labels_columns].shape[0] == audio_predictions.shape[0]
+        assert sample_file.loc[sample_file["video_name"] == video_name, labels_columns].shape[0] == video_predictions.shape[0]
+        # generate predictions by filtering out high entropy and summing up with weights
+        audio_entropy = entropy(audio_predictions, axis=-1)
+        audio_mask = audio_entropy > entropy_threshold
+        audio_predictions[audio_mask] = 0
+        predictions = audio_predictions * weights[0] + video_predictions * weights[1]
+        predictions = np.argmax(predictions, axis=-1)
+        sample_file.loc[sample_file["video_name"]==video_name, "category"] = predictions
+    # check on NaN values
+    assert sample_file[labels_columns].isna().sum().sum() == 0
+    sample_file.drop(columns=["video_name"], inplace=True)
+    sample_file["category"] = sample_file["category"].astype(int)
+    sample_file.columns = ["image_location", "Neutral,Anger,Disgust,Fear,Happiness,Sadness,Surprise,Other"]
+    sample_file.to_csv(output_path, index=False)
+
 
 
 
@@ -215,8 +255,6 @@ def main():
     # transform both audio and video to the same format
     audio = process_dict(audio, labels)
     video = process_dict(video, labels)
-    audio_test = process_dict(audio_test, test_sample)
-    video_test = process_dict(video_test, test_sample)
     # combine predictions of keys of audio and video
     audio_preds = []
     video_preds = []
@@ -258,6 +296,16 @@ def main():
     print("Best weights: ", best_weights)
 
     # prepare test predictions
+    audio_test = process_dict(audio_test, test_sample)
+    video_test = video_test
+    # generate test predictions using best weights and threshold
+    generate_test_predictions(audio=audio_test, video=video_test,
+                              path_to_test_sample=path_to_sample_file,
+                              weights=best_weights, entropy_threshold=best_threshold,
+                              output_path="/home/ddresvya/Data/test_set/Exp/submission_2/submission_2.csv")
+    # save best weights and threshold
+    with open("/home/ddresvya/Data/test_set/Exp/submission_2/best_weights_and_threshold.pickle", "wb") as f:
+        pickle.dump({"weights": best_weights, "threshold": best_threshold}, f)
 
 
 
