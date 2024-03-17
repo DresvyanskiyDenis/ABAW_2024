@@ -156,6 +156,42 @@ def get_best_fusion_weights(audio, video, label_values, num_generations=1000):
     return best_weights, best_CCC, best_CCC_valence, best_CCC_arousal
 
 
+def generate_test_predictions(audio, video, weights, path_to_test_sample, output_path):
+    labels_columns = ["valence", "arousal"]
+    sample_file = pd.read_csv(path_to_test_sample)
+    sample_file["video_name"] = sample_file["image_location"].apply(lambda x: x.split("/")[0])
+    sample_file[labels_columns] = np.NaN
+    for video_name in video.keys():
+        video_preds = video[video_name]
+        audio_preds = audio[video_name]["predictions"]
+        lbs = sample_file[sample_file["video_name"] == video_name][labels_columns].values
+
+        if video_preds.shape[0] < lbs.shape[0]:
+            video_preds = np.concatenate([video_preds, np.repeat(video_preds[-1][np.newaxis, :],
+                                                                 lbs.shape[0] - video_preds.shape[0], axis=0)], axis=0)
+        elif video_preds.shape[0] > lbs.shape[0]:
+            video_preds = video_preds[:lbs.shape[0]]
+
+        if audio_preds.shape[0] < lbs.shape[0]:
+            audio_preds = np.concatenate([audio_preds, np.repeat(audio_preds[-1][np.newaxis, :],
+                                                                 lbs.shape[0] - audio_preds.shape[0], axis=0)], axis=0)
+        elif audio_preds.shape[0] > lbs.shape[0]:
+            audio_preds = audio_preds[:lbs.shape[0]]
+
+        assert video_preds.shape[0] == audio_preds.shape[0]
+        assert video_preds.shape[0] == lbs.shape[0]
+        assert audio_preds.shape[0] == lbs.shape[0]
+
+        final_prediction = audio_preds * weights[0] + video_preds * weights[1]
+        sample_file.loc[sample_file["video_name"] == video_name, labels_columns] = final_prediction
+    # check on NaNs
+    assert sample_file[labels_columns].isna().sum().sum() == 0
+    # save results
+    sample_file.drop(columns=["video_name"], inplace=True)
+    sample_file.to_csv(output_path, index=False)
+
+
+
 
 
 def main():
@@ -190,12 +226,28 @@ def main():
     audio_dev = np.concatenate(audio_dev_all, axis=0)
     video_dev = np.concatenate(video_dev_all, axis=0)
     labels = np.concatenate(labels_all, axis=0)
+    # some labels have -5, we need to filter them out
+    mask = labels[:, 0] != -5
+    audio_dev = audio_dev[mask]
+    video_dev = video_dev[mask]
+    labels = labels[mask]
+    mask = labels[:, 1] != -5
+    audio_dev = audio_dev[mask]
+    video_dev = video_dev[mask]
+    labels = labels[mask]
     # get best weights
     best_weights, best_CCC, best_CCC_valence, best_CCC_arousal = get_best_fusion_weights(audio_dev, video_dev, labels)
     print(f"Best weights: {best_weights}")
     print(f"Best CCC: {best_CCC}")
     print(f"Best CCC valence: {best_CCC_valence}")
     print(f"Best CCC arousal: {best_CCC_arousal}")
+    # generate predictions
+    generate_test_predictions(audio_test, video_test, best_weights,
+                               path_to_test_sample="/home/ddresvya/Data/test_set/prediction_files_format/CVPR_6th_ABAW_VA_test_set_sample.txt",
+                               output_path="/home/ddresvya/Data/test_set/VA/submission_2/submission_2.csv")
+    # save best weights
+    with open("/home/ddresvya/Data/test_set/VA/submission_2/best_weights.pkl", 'wb') as f:
+        pickle.dump(best_weights, f)
 
 
 
