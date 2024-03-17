@@ -6,8 +6,10 @@ from scipy.special import softmax
 from scipy.stats import entropy
 from sklearn.metrics import f1_score
 
+from video.post_processing.embeddings_extraction_dynamic import load_fps_file
+
 path_to_project = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir)) + os.path.sep
+    os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir, os.path.pardir)) + os.path.sep
 sys.path.append(path_to_project)
 sys.path.append(path_to_project.replace("ABAW_2023_SIU", "datatools"))
 sys.path.append(path_to_project.replace("ABAW_2023_SIU", "simple-HRNet-master"))
@@ -119,6 +121,60 @@ def get_best_entropy_threshold(audio, video, label_values, alpha):
             best_threshold = threshold
     return best_threshold, best_f1
 
+def filter_out_predictions_with_high_entropy(audio, threshold):
+    audio_entropy = entropy(audio, axis=-1)
+    audio_mask = audio_entropy > threshold
+    current_audio = audio.copy()
+    current_audio[audio_mask] = 0
+    return current_audio
+
+
+
+
+def get_best_fusion_weights(audio, video, label_values, num_generations=1000):
+    # generate num_generations weights using Dirichlet distribution. We generate both for models and classses
+    generated_weights = np.random.dirichlet((1,1), size=(num_generations,audio.shape[-1])).transpose(0,2,1)
+    best_f1 = 0
+    best_weights = None
+    for weights in generated_weights:
+        # calculate f1 score
+        prediction = audio * weights[0][np.newaxis,...] + video * weights[1][np.newaxis,...]
+        prediction = np.argmax(prediction, axis=-1)
+        f1 = f1_score(label_values, prediction, average="macro")
+        if f1 > best_f1:
+            best_f1 = f1
+            best_weights = weights
+    return best_weights, best_f1
+
+
+
+def load_test_sample_file_and_preprocess(path_to_sample_file:str, challenge, video_to_fps):
+    sample_file = pd.read_csv(path_to_sample_file)
+    sample_file["video_name"] = sample_file["image_location"].apply(lambda x: x.split("/")[0])
+    sample_file.drop(columns=["Neutral", "Anger", "Disgust", "Fear", "Happiness", "Sadness", "Surprise", "Other"],
+                     inplace=True)
+    if challenge == "Exp":
+        labels_columns = ["category"]
+    else:
+        labels_columns = ["valence", "arousal"]
+    sample_file[labels_columns] = np.NaN
+    # divide on video names
+    video_names = sample_file["video_name"].unique()
+    result = {}
+    for video_name in video_names:
+        result[video_name] = sample_file[sample_file["video_name"] == video_name]
+    # generate num_frames and timesteps in every video
+    for video_name in result.keys():
+        video_info = result[video_name]
+        fps = video_to_fps[video_name]
+        fps_in_seconds = 1. / fps
+        video_info["num_frames"] = np.arange(1, video_info.shape[0]+1, 1).astype('int32')
+        video_info["timesteps"] = video_info["num_frames"] * fps_in_seconds
+        video_info["timesteps"] = np.round(video_info["timesteps"], 2)
+    return result
+
+
+
 
 
 
@@ -128,12 +184,24 @@ def get_best_entropy_threshold(audio, video, label_values, alpha):
 def main():
     path_to_audio_devel = "/home/ddresvya/Data/features/expr_devel.pickle"
     path_to_video = "/home/ddresvya/Data/features/dynamic_features_facial_exp.pkl"
+    path_to_audio_test = "/home/ddresvya/Data/features/test_predictions_dynamic/exp_audio_test_predictions/expr_test.pickle"
+    path_to_video_test = "/home/ddresvya/Data/features/test_predictions_dynamic/dynamic_features_facial_exp_test.pkl"
+    video_to_fps = load_fps_file(os.path.join(path_to_project, "src/video/training/dynamic_models/fps.pkl"))
+    path_to_sample_file = "/home/ddresvya/Data/test_set/prediction_files_format/CVPR_6th_ABAW_Expr_test_set_sample.txt"
+    # load test sample file
+    test_sample = load_test_sample_file_and_preprocess(path_to_sample_file, "Exp", video_to_fps)
     # load pickle files
     with open(path_to_audio_devel, 'rb') as f:
         audio = pickle.load(f)
         audio = {k.split(".")[0]: audio[k] for k in audio.keys()}
     with open(path_to_video, 'rb') as f:
         video = pickle.load(f)
+    # load test pickle files
+    with open(path_to_audio_test, 'rb') as f:
+        audio_test = pickle.load(f)
+        audio_test = {k.split(".")[0]: audio_test[k] for k in audio_test.keys()}
+    with open(path_to_video_test, 'rb') as f:
+        video_test = pickle.load(f)
     # in video, get only keys that are in audio_devel
     video = {k: video[k] for k in audio.keys()}
     # load fps file and labels
@@ -147,6 +215,8 @@ def main():
     # transform both audio and video to the same format
     audio = process_dict(audio, labels)
     video = process_dict(video, labels)
+    audio_test = process_dict(audio_test, test_sample)
+    video_test = process_dict(video_test, test_sample)
     # combine predictions of keys of audio and video
     audio_preds = []
     video_preds = []
@@ -180,9 +250,15 @@ def main():
     print("Best alpha: ", best_alpha)
     print("Best f1: ", best_f1)
 
-    # TODO: Dirichlet distribution weights
-    # save best weights
-    # generate test predictions (submission v3)
+    # filter out predictions with high entropy
+    audio_preds = filter_out_predictions_with_high_entropy(audio_preds, best_threshold)
+    # find the best weights for the fusion by sampling the Dirichlet distribution
+    best_weights, best_f1 = get_best_fusion_weights(audio_preds, video_preds, labels_values)
+    print("Best f1 score after fusion with weights generated by Dirichlet distribution: ", best_f1)
+    print("Best weights: ", best_weights)
+
+    # prepare test predictions
+
 
 
 
