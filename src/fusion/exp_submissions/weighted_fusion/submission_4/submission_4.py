@@ -15,7 +15,7 @@ from fusion.exp_submissions.weighted_fusion.submission_2.submission_2 import loa
 from video.post_processing.embeddings_extraction_dynamic import load_fps_file
 
 path_to_project = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir, os.path.pardir)) + os.path.sep
+    os.path.join(os.path.dirname(__file__), os.path.pardir,os.path.pardir, os.path.pardir, os.path.pardir, os.path.pardir)) + os.path.sep
 sys.path.append(path_to_project)
 sys.path.append(path_to_project.replace("ABAW_2023_SIU", "datatools"))
 sys.path.append(path_to_project.replace("ABAW_2023_SIU", "simple-HRNet-master"))
