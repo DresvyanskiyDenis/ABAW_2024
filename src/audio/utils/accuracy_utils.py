@@ -153,8 +153,12 @@ def v_score(targets: list[np.ndarray] | np.ndarray,
     if isinstance(predicts, list):
         predicts = np.stack(predicts) 
 
-    targets_v = targets[:, :, 0].flatten().tolist()
-    predicts_v = predicts[:, :, 0].flatten().tolist()
+    if targets.ndim == 3:
+        targets_v = targets[:, :, 0].flatten().tolist()
+        predicts_v = predicts[:, :, 0].flatten().tolist()
+    else:
+        targets_v = targets[:, 0].flatten().tolist()
+        predicts_v = predicts[:, 0].flatten().tolist()
 
     return ccc_score(targets_v, predicts_v)
 
@@ -178,8 +182,12 @@ def a_score(targets: list[np.ndarray] | np.ndarray,
     if isinstance(predicts, list):
         predicts = np.stack(predicts) 
         
-    targets_a = targets[:, :, 1].flatten().tolist()
-    predicts_a = predicts[:, :, 1].flatten().tolist()
+    if targets.ndim == 3:
+        targets_a = targets[:, :, 0].flatten().tolist()
+        predicts_a = predicts[:, :, 0].flatten().tolist()
+    else:
+        targets_a = targets[:, 0].flatten().tolist()
+        predicts_a = predicts[:, 0].flatten().tolist()
     
     return ccc_score(targets_a, predicts_a)
 
