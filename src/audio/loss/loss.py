@@ -80,7 +80,7 @@ class FocalLoss(nn.Module):
     """Focal Loss, as described in https://arxiv.org/abs/1708.02002.
     It is essentially an enhancement to cross entropy loss and is
     useful for classification tasks when there is a large class imbalance. 
-    Implemented by Denis Dresvyanskiy.
+    Implemented by ***. # TODO
     
     x is expected to contain raw, unnormalized scores for each class.
     y is expected to contain class labels.
@@ -160,7 +160,7 @@ class SoftFocalLoss(nn.Module):
     """Focal Loss, as described in https://arxiv.org/abs/1708.02002 with soft targets, 
     For example, target can be [0, 0.3, 0.7, 1]
     Class FocalLoss takes only digit targets. 
-    Implemented by Denis Dresvyanskiy.
+    Implemented by ***. # TODO
     
     Args:
         softmax (bool): Apply softmax or not. Defaults to True.

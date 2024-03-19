@@ -1,7 +1,7 @@
 import sys
-sys.path.append("/nfs/home/ddresvya/scripts/ABAW_2023_SIU/")
-sys.path.append("/nfs/home/ddresvya/scripts/datatools/")
-sys.path.append("/nfs/home/ddresvya/scripts/simple-HRNet-master/")
+sys.path.append("/nfs/scripts/ABAW_2023_SIU/")
+sys.path.append("/nfs/scripts/datatools/")
+sys.path.append("/nfs/scripts/simple-HRNet-master/")
 
 
 import glob
@@ -125,15 +125,15 @@ def extract_poses_from_all_videos(paths_to_videos: List[str], detector: object, 
 
 if __name__ == "__main__":
     # TODO: check it
-    path_to_data = "/nfs/scratch/ddresvya/Data/ABAW/"
-    output_path = "/nfs/scratch/ddresvya/Data/preprocessed/pose/"
+    path_to_data = "/nfs/scratch/Data/ABAW/"
+    output_path = "/nfs/scratch/Data/preprocessed/pose/"
     # load detector
     detector = SimpleHRNet(c=48, nof_joints=17, multiperson=True,
                            yolo_version = 'v3',
-                           yolo_model_def=os.path.join("/nfs/home/ddresvya/scripts/simple-HRNet-master/","models_/detectors/yolo/config/yolov3.cfg"),
-                           yolo_class_path=os.path.join("/nfs/home/ddresvya/scripts/simple-HRNet-master/","models_/detectors/yolo/data/coco.names"),
-                           yolo_weights_path=os.path.join("/nfs/home/ddresvya/scripts/simple-HRNet-master/","models_/detectors/yolo/weights/yolov3.weights"),
-                                 checkpoint_path=r"/nfs/home/ddresvya/scripts/simple-HRNet-master/pose_hrnet_w48_384x288.pth",
+                           yolo_model_def=os.path.join("/nfs/scripts/simple-HRNet-master/","models_/detectors/yolo/config/yolov3.cfg"),
+                           yolo_class_path=os.path.join("/nfs/scripts/simple-HRNet-master/","models_/detectors/yolo/data/coco.names"),
+                           yolo_weights_path=os.path.join("/nfs/scripts/simple-HRNet-master/","models_/detectors/yolo/weights/yolov3.weights"),
+                                 checkpoint_path=r"/nfs/scripts/simple-HRNet-master/pose_hrnet_w48_384x288.pth",
                                  return_heatmaps=False, return_bounding_boxes=True, max_batch_size=1, device=torch.device("cuda"))
     paths_to_videos = glob.glob(os.path.join(path_to_data, "*"))
     metadata = extract_poses_from_all_videos(paths_to_videos=paths_to_videos, detector=detector,

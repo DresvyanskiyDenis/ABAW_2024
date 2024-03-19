@@ -35,9 +35,9 @@ def load_test_sample_file_and_preprocess(path_to_sample_file:str, video_to_fps):
 
 
 def main():
-    path_to_test_predictions_valence = "/home/ddresvya/Data/features/test_predictions_dynamic/dynamic_features_facial_valence_test_30.pkl"
-    path_to_test_predictions_arousal = "/home/ddresvya/Data/features/test_predictions_dynamic/dynamic_features_facial_arousal_test_30.pkl"
-    path_to_test_sample_file = "/home/ddresvya/Data/test_set/prediction_files_format/CVPR_6th_ABAW_VA_test_set_sample.txt"
+    path_to_test_predictions_valence = "/Data/features/test_predictions_dynamic/dynamic_features_facial_valence_test_30.pkl"
+    path_to_test_predictions_arousal = "/Data/features/test_predictions_dynamic/dynamic_features_facial_arousal_test_30.pkl"
+    path_to_test_sample_file = "/Data/test_set/prediction_files_format/CVPR_6th_ABAW_VA_test_set_sample.txt"
     video_to_fps = load_fps_file(os.path.join(path_to_project, "src/video/training/dynamic_models/fps.pkl"))
 
     # load pickle files
@@ -78,7 +78,7 @@ def main():
     submission_result.drop(columns=["video_name"], inplace=True)
     # check nans
     assert submission_result.isna().sum().sum() == 0
-    output_path = "/home/ddresvya/Data/test_set/VA/submission_1/submission_1.csv"
+    output_path = "/Data/test_set/VA/submission_1/submission_1.csv"
     submission_result.to_csv(output_path, index=False)
 
 

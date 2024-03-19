@@ -1,12 +1,12 @@
 from typing import Dict
 
 # labels and data paths
-VA_TRAIN_LABELS_PATH:str = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/"
-VA_DEV_LABELS_PATH:str = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/"
-Exp_TRAIN_LABELS_PATH:str = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/"
-Exp_DEV_LABELS_PATH:str = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/"
+VA_TRAIN_LABELS_PATH:str = "/nfs/scratch/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/"
+VA_DEV_LABELS_PATH:str = "/nfs/scratch/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/"
+Exp_TRAIN_LABELS_PATH:str = "/nfs/scratch/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/"
+Exp_DEV_LABELS_PATH:str = "/nfs/scratch/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/"
 
-METAFILE_PATH:str = "/nfs/scratch/ddresvya/Data/preprocessed/pose/metadata.csv"
+METAFILE_PATH:str = "/nfs/scratch/Data/preprocessed/pose/metadata.csv"
 
 # model architecture params
 NUM_CLASSES:int = 8

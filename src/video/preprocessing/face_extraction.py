@@ -1,8 +1,8 @@
 
 import sys
-sys.path.append("/nfs/home/ddresvya/scripts/ABAW_2023_SIU/")
-sys.path.append("/nfs/home/ddresvya/scripts/datatools/")
-sys.path.append("/nfs/home/ddresvya/scripts/simple-HRNet-master/")
+sys.path.append("/nfs/scripts/ABAW_2023_SIU/")
+sys.path.append("/nfs/scripts/datatools/")
+sys.path.append("/nfs/scripts/simple-HRNet-master/")
 
 import glob
 import os
@@ -215,13 +215,13 @@ def make_left_right_videos(path_to_data:str, output_path:str)->None:
 
 if __name__=="__main__":
     # make left and right videos
-    """path_to_data = "/nfs/scratch/ddresvya/Data/ABAW/"
-    output_path = "/nfs/scratch/ddresvya/Data/left_right_videos/"
+    """path_to_data = "/nfs/scratch/Data/ABAW/"
+    output_path = "/nfs/scratch/Data/left_right_videos/"
     make_left_right_videos(path_to_data, output_path)"""
 
 
-    path_to_data = "/nfs/scratch/ddresvya/Data/ABAW/"
-    output_path = "/nfs/scratch/ddresvya/Data/preprocessed/faces/"
+    path_to_data = "/nfs/scratch/Data/ABAW/"
+    output_path = "/nfs/scratch/Data/preprocessed/faces/"
     # load detector
     detector = load_and_prepare_detector_retinaFace_mobileNet()
     paths_to_videos = glob.glob(os.path.join(path_to_data, "*"))

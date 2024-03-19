@@ -188,7 +188,7 @@ if __name__ == '__main__':
     # EXPR model - wCELSa-ExprModelV3-2024.03.02-09.24.44, spleeter
     # VA model - a-VAModelV3-2024.03.05-02.53.26, spleeter
     model_parameters = [
-        {'model_name': 'Facial-wFL-final_fusion_model_v4-2024.03.17-04.39.14', 'model_cls': final_fusion_model_v4, 'epoch': 12, 'root_path': '/media/maxim/WesternDigitalNew/AbawLogs/FUSION_EXP'},
+        {'model_name': 'Facial-wFL-final_fusion_model_v4-2024.03.17-04.39.14', 'model_cls': final_fusion_model_v4, 'epoch': 12, 'root_path': '/Logs/FUSION_EXP'},  # TODO
     ]
 
     # EXPR

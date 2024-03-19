@@ -242,7 +242,7 @@ class AbawMultimodalVAWithNormDataset(Dataset):
 
 
 if __name__ == "__main__":
-    labels_root = '/media/maxim/Databases/ABAW2024/6th_ABAW_Annotations/VA_Estimation_Challenge'
+    labels_root = '/6th_ABAW_Annotations/VA_Estimation_Challenge'
      
     ds_names = {
         'train': 'train', 
@@ -261,12 +261,12 @@ if __name__ == "__main__":
     # EXPR
     datasets = {}
     for ds in ds_names:
-        datasets[ds] = AbawMultimodalVAWithNormDataset(audio_features_path='/media/maxim/Databases/ABAW2024/extracted_av_feats/VA/audio_features/va_{0}.pickle'.format(ds),
-                                         video_features_path='/media/maxim/Databases/ABAW2024/extracted_av_feats/VA/Dynamic_features_VA/dynamic_features_facial_valence_20.pkl',
+        datasets[ds] = AbawMultimodalVAWithNormDataset(audio_features_path='/extracted_av_feats/VA/audio_features/va_{0}.pickle'.format(ds),
+                                         video_features_path='/extracted_av_feats/VA/video_features/dynamic_features_facial_valence_20.pkl',
                                          labels_root=labels_root,
                                          label_filenames=metadata_info[ds]['label_filenames'],
                                          dataset=metadata_info[ds]['dataset'],
-                                         audio_train_features_path='/media/maxim/Databases/ABAW2024/extracted_av_feats/VA/audio_features/va_train.pickle',
+                                         audio_train_features_path='/extracted_av_feats/VA/audio_features/va_train.pickle',
                                          normalizer=[None, None, None] if 'train' in ds else [datasets['train'].a_va_normalizer, 
                                                                                               datasets['train'].v_v_normalizer,
                                                                                               datasets['train'].v_a_normalizer],

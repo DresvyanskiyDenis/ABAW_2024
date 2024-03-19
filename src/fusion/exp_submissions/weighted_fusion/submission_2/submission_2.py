@@ -230,12 +230,12 @@ def generate_test_predictions(audio, video, path_to_test_sample, weights, entrop
 
 
 def main():
-    path_to_audio_devel = "/home/ddresvya/Data/features/expr_devel.pickle"
-    path_to_video = "/home/ddresvya/Data/features/dynamic_features_facial_exp.pkl"
-    path_to_audio_test = "/home/ddresvya/Data/features/test_predictions_dynamic/exp_audio_test_predictions/expr_test.pickle"
-    path_to_video_test = "/home/ddresvya/Data/features/test_predictions_dynamic/dynamic_features_facial_exp_test.pkl"
+    path_to_audio_devel = "/Data/features/expr_devel.pickle"
+    path_to_video = "/Data/features/dynamic_features_facial_exp.pkl"
+    path_to_audio_test = "/Data/features/test_predictions_dynamic/exp_audio_test_predictions/expr_test.pickle"
+    path_to_video_test = "/Data/features/test_predictions_dynamic/dynamic_features_facial_exp_test.pkl"
     video_to_fps = load_fps_file(os.path.join(path_to_project, "src/video/training/dynamic_models/fps.pkl"))
-    path_to_sample_file = "/home/ddresvya/Data/test_set/prediction_files_format/CVPR_6th_ABAW_Expr_test_set_sample.txt"
+    path_to_sample_file = "/Data/test_set/prediction_files_format/CVPR_6th_ABAW_Expr_test_set_sample.txt"
     # load test sample file
     test_sample = load_test_sample_file_and_preprocess(path_to_sample_file, "Exp", video_to_fps)
     # load pickle files
@@ -254,7 +254,7 @@ def main():
     video = {k: video[k] for k in audio.keys()}
     # load fps file and labels
     path_to_fps = "src/video/training/dynamic_models/fps.pkl"
-    path_to_labels = "/home/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/"
+    path_to_labels = "/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/"
     with open(os.path.join(path_to_project, path_to_fps), 'rb') as f:
         fps = pickle.load(f)
         fps = {k.split(".")[0]: fps[k] for k in fps.keys()}
@@ -310,9 +310,9 @@ def main():
     generate_test_predictions(audio=audio_test, video=video_test,
                               path_to_test_sample=path_to_sample_file,
                               weights=best_weights, entropy_threshold=best_threshold,
-                              output_path="/home/ddresvya/Data/test_set/Exp/submission_2/submission_2.csv")
+                              output_path="/Data/test_set/Exp/submission_2/submission_2.csv")
     # save best weights and threshold
-    with open("/home/ddresvya/Data/test_set/Exp/submission_2/best_weights_and_threshold.pickle", "wb") as f:
+    with open("/Data/test_set/Exp/submission_2/best_weights_and_threshold.pickle", "wb") as f:
         pickle.dump({"weights": best_weights, "threshold": best_threshold}, f)
 
 

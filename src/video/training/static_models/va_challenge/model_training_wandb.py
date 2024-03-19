@@ -266,7 +266,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
         print(f"{key}: {value}")
     print("____________________________________________________")
     # initialization of Weights and Biases
-    wandb.init(project="ABAW_2023_VA_static", config=metaparams, entity="denisdresvyanskiy")
+    wandb.init(project="ABAW_2023_VA_static", config=metaparams, entity="author") # TODO
     config = wandb.config
     wandb.config.update({'BEST_MODEL_SAVE_PATH': wandb.run.dir}, allow_val_change=True)
 
@@ -283,7 +283,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
                                   num_regression_neurons=2)
     elif config.MODEL_TYPE == "Modified_HRNet":
         model = Modified_HRNet(pretrained=True,
-                               path_to_weights="/nfs/home/ddresvya/scripts/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
+                               path_to_weights="/nfs/scripts/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
                                embeddings_layer_neurons=256, num_classes=8,
                                num_regression_neurons=2, consider_only_upper_body=True)
     else:

@@ -280,12 +280,12 @@ def load_data_and_construct_dataloaders(config: Dict[str, Union[int, float, str]
 if __name__ == "__main__":
     print('start')
     config = {
-        "va_train_labels_path": "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/",
-        "va_dev_labels_path": "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
-        "exp_train_labels_path": "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/",
-        "exp_dev_labels_path": "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/",
-        "va_metadata_path": "/nfs/scratch/ddresvya/Data/preprocessed/faces/metadata.csv",
-        "exp_metadata_path": "/nfs/scratch/ddresvya/Data/preprocessed/faces/metadata.csv"
+        "va_train_labels_path": "/nfs/scratch/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/",
+        "va_dev_labels_path": "/nfs/scratch/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
+        "exp_train_labels_path": "/nfs/scratch/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/",
+        "exp_dev_labels_path": "/nfs/scratch/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/",
+        "va_metadata_path": "/nfs/scratch/Data/preprocessed/faces/metadata.csv",
+        "exp_metadata_path": "/nfs/scratch/Data/preprocessed/faces/metadata.csv"
     }
     train_labels, dev_labels = load_labels_with_frame_paths(config)
     a=1.+2

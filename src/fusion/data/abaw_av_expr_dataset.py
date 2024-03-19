@@ -385,7 +385,7 @@ class AbawMultimodalExprWithNormDataset(Dataset):
 
 
 if __name__ == "__main__":
-    labels_root = '/media/maxim/Databases/ABAW2024/6th_ABAW_Annotations/EXPR_Classification_Challenge'
+    labels_root = '/6th_ABAW_Annotations/EXPR_Classification_Challenge'
      
     ds_names = {
         'train': 'train', 
@@ -404,12 +404,12 @@ if __name__ == "__main__":
     # EXPR
     datasets = {}
     for ds in ds_names:
-        datasets[ds] = AbawMultimodalExprWithNormDataset(audio_features_path='/media/maxim/WesternDigital/ABAWLogs/EXPR/audio_features/expr_{0}.pickle'.format(ds),
-                                         video_features_path='/media/maxim/WesternDigital/ABAWLogs/EXPR/Dynamic_features_exp_new2/dynamic_features_facial_exp.pkl',
+        datasets[ds] = AbawMultimodalExprWithNormDataset(audio_features_path='/extracted_av_feats/EXPR/audio_features/expr_{0}.pickle'.format(ds),
+                                         video_features_path='/extracted_av_feats/EXPR/video_features/dynamic_features_facial_exp.pkl',
                                          labels_root=labels_root,
                                          label_filenames=metadata_info[ds]['label_filenames'],
                                          dataset=metadata_info[ds]['dataset'],
-                                         audio_train_features_path='/media/maxim/WesternDigital/ABAWLogs/EXPR/audio_features/expr_train.pickle',
+                                         audio_train_features_path='/extracted_av_feats/EXPR/audio_features/expr_train.pickle',
                                          normalizer=[None, None] if 'train' in ds else [datasets['train'].a_normalizer, datasets['train'].v_normalizer],
                                          shift=2, min_w_len=2, max_w_len=4)
 

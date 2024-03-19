@@ -151,7 +151,7 @@ def convert_video_to_audio(files_root: str,
 
 
 if __name__ == "__main__":
-    files_root = "/media/maxim/Databases/ABAW2024/data/videos"
+    files_root =  '/data/videos' # TODO
     
     convert_video_to_audio(files_root=files_root, 
                            filtering=False,

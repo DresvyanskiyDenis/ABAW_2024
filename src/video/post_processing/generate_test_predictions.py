@@ -237,19 +237,19 @@ def main():
     """config_static_exp = {
         "static_model_type": "ViT_b_16",
         "pose_model_type": "HRNet",
-        "path_to_static_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned/Exp_challenge/AffWild2_static_exp_best_ViT.pth",
-        "path_to_pose_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned/Exp_challenge/AffWild2_static_exp_best_HRNet.pth",
-        "path_hrnet_weights": "/home/ddresvya/PhD/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
-        "output_static_features": "/home/ddresvya/Data/features/Exp_test/",
+        "path_to_static_weights": "/Data/weights_best_models/fine_tuned/Exp_challenge/AffWild2_static_exp_best_ViT.pth",
+        "path_to_pose_weights": "/Data/weights_best_models/fine_tuned/Exp_challenge/AffWild2_static_exp_best_HRNet.pth",
+        "path_hrnet_weights": "/PhD/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
+        "output_static_features": "/Data/features/Exp_test/",
         "num_classes": 8,
         "num_regression_neurons": None,
         "device": torch.device("cuda"),
         "batch_size": 32,
         "challenge": "Exp",
-        "path_to_videos": "/home/ddresvya/Data/ABAW/"
+        "path_to_videos": "/Data/ABAW/"
     }
     # read test filenames from txt
-    videos_test_exp = list(np.loadtxt("/home/ddresvya/Data/test_set/names_of_videos_in_each_test_set/Expression_Recognition_Challenge_test_set_release.txt", dtype=str).flatten())
+    videos_test_exp = list(np.loadtxt("/Data/test_set/names_of_videos_in_each_test_set/Expression_Recognition_Challenge_test_set_release.txt", dtype=str).flatten())
     # create output folder if not exists
     if not os.path.exists(config_static_exp["output_static_features"]):
         os.makedirs(config_static_exp["output_static_features"])
@@ -260,18 +260,18 @@ def main():
     """config_static_VA = {
         "static_model_type": "EfficientNet-B1",
         "pose_model_type": "HRNet",
-        "path_to_static_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned/VA_challenge/AffWild2_static_va_best_b1.pth",
-        "path_to_pose_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned/VA_challenge/AffWild2_static_va_best_HRNet.pth",
-        "path_hrnet_weights": "/home/ddresvya/PhD/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
-        "output_static_features": "/home/ddresvya/Data/features/VA_test/",
+        "path_to_static_weights": "/Data/weights_best_models/fine_tuned/VA_challenge/AffWild2_static_va_best_b1.pth",
+        "path_to_pose_weights": "/Data/weights_best_models/fine_tuned/VA_challenge/AffWild2_static_va_best_HRNet.pth",
+        "path_hrnet_weights": "/PhD/simple-HRNet-master/pose_hrnet_w32_256x192.pth",
+        "output_static_features": "/Data/features/VA_test/",
         "num_classes": None,
         "num_regression_neurons": 2,
         "device": torch.device("cuda"),
         "challenge": "VA",
         "batch_size": 32,
-        "path_to_videos": "/home/ddresvya/Data/ABAW/"
+        "path_to_videos": "/Data/ABAW/"
     }
-    videos_test_VA = list(np.loadtxt("/home/ddresvya/Data/test_set/names_of_videos_in_each_test_set/Valence_Arousal_Estimation_Challenge_test_set_release.txt", dtype=str).flatten())
+    videos_test_VA = list(np.loadtxt("/Data/test_set/names_of_videos_in_each_test_set/Valence_Arousal_Estimation_Challenge_test_set_release.txt", dtype=str).flatten())
     process_all_videos_static_test(config=config_static_VA, videos=videos_test_VA)"""
 
 
@@ -280,7 +280,7 @@ def main():
         "dynamic_model_type": "dynamic_v3",
         "embeddings_columns": [f"facial_embedding_{i}" for i in range(256)],
         "normalization": "min_max",
-        "path_to_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic/uni_modal_face_best.pth",
+        "path_to_weights": "/Data/weights_best_models/fine_tuned_dynamic/uni_modal_face_best.pth",
         "input_shape": (20, 256),
         "num_classes": 8,
         "num_regression_neurons": None,
@@ -290,9 +290,9 @@ def main():
         "batch_size": 32,
         "challenge": "Exp",
         'video_to_fps': load_fps_file(os.path.join(path_to_project, "src/video/training/dynamic_models/fps.pkl")),
-        'output_path': "/home/ddresvya/Data/test_set/Exp/submission_1/submission_1.csv",
-        'path_to_extracted_features': "/home/ddresvya/Data/features/Exp_test/",
-        'path_to_sample_file': "/home/ddresvya/Data/test_set/prediction_files_format/CVPR_6th_ABAW_Expr_test_set_sample.txt",
+        'output_path': "/Data/test_set/Exp/submission_1/submission_1.csv",
+        'path_to_extracted_features': "/Data/features/Exp_test/",
+        'path_to_sample_file': "/Data/test_set/prediction_files_format/CVPR_6th_ABAW_Expr_test_set_sample.txt",
     }
     generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_exp)
 

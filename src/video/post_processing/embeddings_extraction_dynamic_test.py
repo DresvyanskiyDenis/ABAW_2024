@@ -135,13 +135,13 @@ def __initialize_face_detector():
 def __initialize_pose_detector():
     detector = SimpleHRNet(c=48, nof_joints=17, multiperson=True,
                 yolo_version='v3',
-                yolo_model_def=os.path.join("/home/ddresvya/PhD/simple-HRNet-master/",
+                yolo_model_def=os.path.join("/PhD/simple-HRNet-master/",
                                             "models_/detectors/yolo/config/yolov3.cfg"),
-                yolo_class_path=os.path.join("/home/ddresvya/PhD/simple-HRNet-master/",
+                yolo_class_path=os.path.join("/PhD/simple-HRNet-master/",
                                              "models_/detectors/yolo/data/coco.names"),
-                yolo_weights_path=os.path.join("/home/ddresvya/PhD/simple-HRNet-master/",
+                yolo_weights_path=os.path.join("/PhD/simple-HRNet-master/",
                                                "models_/detectors/yolo/weights/yolov3.weights"),
-                checkpoint_path=r"/home/ddresvya/PhD/simple-HRNet-master/pose_hrnet_w48_384x288.pth",
+                checkpoint_path=r"/PhD/simple-HRNet-master/pose_hrnet_w48_384x288.pth",
                 return_heatmaps=False, return_bounding_boxes=True, max_batch_size=1, device=torch.device("cuda"))
     return detector
 
@@ -354,7 +354,7 @@ def process_one_video_static(path_to_video:str, face_detector:object, pose_detec
 
 
 def round_math(val: float) -> int:
-    """Rounds value. Proposed by Elena Ryumina
+    """Rounds value. Proposed by *** # TODO
     Args:
         val (float): Value
     Returns:
@@ -580,9 +580,9 @@ if __name__ == "__main__":
         "normalization_face": "min_max",
         "normalization_pose": "min_max",
         "normalization_fusion": "standard",
-        "path_dynamic_model_facial": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic/uni_modal_face_best.pth",
-        "path_dynamic_model_pose": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic/uni_modal_pose_best.pth",
-        "path_dynamic_model_fusion": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic/bi_modal_face_pose_best.pth",
+        "path_dynamic_model_facial": "/Data/weights_best_models/fine_tuned_dynamic/uni_modal_face_best.pth",
+        "path_dynamic_model_pose": "/Data/weights_best_models/fine_tuned_dynamic/uni_modal_pose_best.pth",
+        "path_dynamic_model_fusion": "/Data/weights_best_models/fine_tuned_dynamic/bi_modal_face_pose_best.pth",
         "input_shape": (20, 256),
         "num_classes": 8,
         "num_regression_neurons": None,
@@ -603,13 +603,13 @@ if __name__ == "__main__":
                                         num_regression_neurons=config_dynamic_face_uni_modal_exp["num_regression_neurons"],
                                         video_to_fps=config_dynamic_face_uni_modal_exp["video_to_fps"],
                                         challenge=config_dynamic_face_uni_modal_exp["challenge"],
-                                        path_to_extracted_features="/home/ddresvya/Data/features/Exp_test/",
+                                        path_to_extracted_features="/Data/features/Exp_test/",
                                         window_size=config_dynamic_face_uni_modal_exp["window_size"],
                                         stride=config_dynamic_face_uni_modal_exp["stride"],
                                         device=config_dynamic_face_uni_modal_exp["device"],
                                         batch_size=config_dynamic_face_uni_modal_exp["batch_size"])
     # save using pickle
-    with open("/home/ddresvya/Data/features/dynamic_features_facial_exp_test.pkl", "wb") as file:
+    with open("/Data/features/dynamic_features_facial_exp_test.pkl", "wb") as file:
         pickle.dump(result_uni_modal_face_exp, file)
 
 
@@ -618,7 +618,7 @@ if __name__ == "__main__":
     config_dynamic_face_uni_modal_v_20 = {
         "dynamic_model_facial": "dynamic_v3",
         "normalization_face": "per-video-minmax",
-        "path_dynamic_model_facial": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_best_valence_20.pth",
+        "path_dynamic_model_facial": "/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_best_valence_20.pth",
         "input_shape": (20, 256),
         "num_classes": None,
         "num_regression_neurons": 2,
@@ -640,20 +640,20 @@ if __name__ == "__main__":
         num_regression_neurons=config_dynamic_face_uni_modal_v_20["num_regression_neurons"],
         video_to_fps=config_dynamic_face_uni_modal_v_20["video_to_fps"],
         challenge=config_dynamic_face_uni_modal_v_20["challenge"],
-        path_to_extracted_features="/home/ddresvya/Data/features/VA_test/",
+        path_to_extracted_features="/Data/features/VA_test/",
         window_size=config_dynamic_face_uni_modal_v_20["window_size"],
         stride=config_dynamic_face_uni_modal_v_20["stride"],
         device=config_dynamic_face_uni_modal_v_20["device"],
         batch_size=config_dynamic_face_uni_modal_v_20["batch_size"])
     # save using pickle
-    with open("/home/ddresvya/Data/features/dynamic_features_facial_valence_20_test.pkl", "wb") as file:
+    with open("/Data/features/dynamic_features_facial_valence_20_test.pkl", "wb") as file:
         pickle.dump(result_uni_modal_face_v_20, file)
 
     # arousal 20
     config_dynamic_face_uni_modal_a_20 = {
         "dynamic_model_facial": "dynamic_v3",
         "normalization_face": "per-video-minmax",
-        "path_dynamic_model_facial": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_best_arousal_20.pth",
+        "path_dynamic_model_facial": "/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_best_arousal_20.pth",
         "input_shape": (20, 256),
         "num_classes": None,
         "num_regression_neurons": 2,
@@ -675,13 +675,13 @@ if __name__ == "__main__":
         num_regression_neurons=config_dynamic_face_uni_modal_a_20["num_regression_neurons"],
         video_to_fps=config_dynamic_face_uni_modal_a_20["video_to_fps"],
         challenge=config_dynamic_face_uni_modal_a_20["challenge"],
-        path_to_extracted_features="/home/ddresvya/Data/features/VA_test/",
+        path_to_extracted_features="/Data/features/VA_test/",
         window_size=config_dynamic_face_uni_modal_a_20["window_size"],
         stride=config_dynamic_face_uni_modal_a_20["stride"],
         device=config_dynamic_face_uni_modal_a_20["device"],
         batch_size=config_dynamic_face_uni_modal_a_20["batch_size"])
     # save using pickle
-    with open("/home/ddresvya/Data/features/dynamic_features_facial_arousal_20_test.pkl", "wb") as file:
+    with open("/Data/features/dynamic_features_facial_arousal_20_test.pkl", "wb") as file:
         pickle.dump(result_uni_modal_face_a_20, file)
 
 

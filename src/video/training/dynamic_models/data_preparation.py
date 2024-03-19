@@ -262,19 +262,19 @@ def __calculate_class_weights(df, labels_columns)->torch.Tensor:
 
 def main():
     # generate fps file just once
-    """path_to_videos = '/nfs/scratch/ddresvya/Data/ABAW/'
-    output_path = '/nfs/scratch/ddresvya/Data/preprocessed/fps.pkl'
+    """path_to_videos = '/nfs/scratch/Data/ABAW/'
+    output_path = '/nfs/scratch/Data/preprocessed/fps.pkl'
     generate_fps_file(path_to_videos, output_path)"""
     config = {
-        "va_train_labels_path": "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/",
-        "va_dev_labels_path": "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
-        "exp_train_labels_path": "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/",
-        "exp_dev_labels_path": "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/",
-        "metafile_path": "/nfs/scratch/ddresvya/Data/preprocessed/faces/metadata.csv",
-        "path_to_data": "/nfs/scratch/ddresvya/Data/preprocessed/faces/",
-        "train_embeddings": "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/EfficientNet_b4/b4_facial_features_train.csv",
-        "dev_embeddings": "/nfs/scratch/ddresvya/Data/preprocessed/extracted_features/EfficientNet_b4/b4_facial_features_dev.csv",
-        "path_to_fps_file": "/nfs/home/ddresvya/scripts/ABAW_2023_SIU/src/video/training/dynamic_models/fps.pkl",
+        "va_train_labels_path": "/nfs/scratch/Data/6th ABAW Annotations/VA_Estimation_Challenge/Train_Set/",
+        "va_dev_labels_path": "/nfs/scratch/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
+        "exp_train_labels_path": "/nfs/scratch/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/",
+        "exp_dev_labels_path": "/nfs/scratch/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/",
+        "metafile_path": "/nfs/scratch/Data/preprocessed/faces/metadata.csv",
+        "path_to_data": "/nfs/scratch/Data/preprocessed/faces/",
+        "train_embeddings": "/nfs/scratch/Data/preprocessed/extracted_features/EfficientNet_b4/b4_facial_features_train.csv",
+        "dev_embeddings": "/nfs/scratch/Data/preprocessed/extracted_features/EfficientNet_b4/b4_facial_features_dev.csv",
+        "path_to_fps_file": "/nfs/scripts/ABAW_2023_SIU/src/video/training/dynamic_models/fps.pkl",
         "common_fps":5,
         "window_size": 10,
         "stride": 5,

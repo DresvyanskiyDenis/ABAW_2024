@@ -174,9 +174,9 @@ def load_train_dev_AffWild2_labels_with_frame_paths(paths_to_labels: Tuple[str, 
 
 def main():
     challenge = "Exp"
-    path_to_train_labels = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/"
-    path_to_dev_labels = "/nfs/scratch/ddresvya/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/"
-    path_to_metadata_file = "/nfs/scratch/ddresvya/Data/preprocessed/faces/metadata.csv"
+    path_to_train_labels = "/nfs/scratch/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Train_Set/"
+    path_to_dev_labels = "/nfs/scratch/Data/6th ABAW Annotations/EXPR_Recognition_Challenge/Validation_Set/"
+    path_to_metadata_file = "/nfs/scratch/Data/preprocessed/faces/metadata.csv"
 
     train_labels, dev_labels = load_train_dev_AffWild2_labels_with_frame_paths(
         paths_to_labels=(path_to_train_labels, path_to_dev_labels),

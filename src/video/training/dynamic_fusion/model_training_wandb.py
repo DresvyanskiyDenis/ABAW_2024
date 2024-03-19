@@ -81,7 +81,7 @@ def train_model(train_generator: torch.utils.data.DataLoader,
     # initialization of Weights and Biases
     wandb_config = training_config.copy()
     del wandb_config['video_to_fps_dict']
-    wandb.init(project=f"ABAW_2023_dynamic_{training_config['challenge']}", config=wandb_config, entity="denisdresvyanskiy")
+    wandb.init(project=f"ABAW_2023_dynamic_{training_config['challenge']}", config=wandb_config, entity="author") # TODO
     config = wandb.config
     wandb.config.update({'best_model_save_path': wandb.run.dir}, allow_val_change=True)
     # create model

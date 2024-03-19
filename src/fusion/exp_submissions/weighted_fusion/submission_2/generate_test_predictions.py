@@ -161,7 +161,7 @@ def main():
         "dynamic_model_type": "dynamic_v3",
         "embeddings_columns": [f"facial_embedding_{i}" for i in range(256)],
         "normalization": "min_max",
-        "path_to_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic/uni_modal_face_best.pth",
+        "path_to_weights": "/Data/weights_best_models/fine_tuned_dynamic/uni_modal_face_best.pth",
         "input_shape": (20, 256),
         "num_classes": 8,
         "num_regression_neurons": None,
@@ -171,8 +171,8 @@ def main():
         "batch_size": 32,
         "challenge": "Exp",
         'video_to_fps': load_fps_file(os.path.join(path_to_project, "src/video/training/dynamic_models/fps.pkl")),
-        'output_path': "/home/ddresvya/Data/features/dynamic_features_facial_exp_test.pkl",
-        'path_to_extracted_features': "/home/ddresvya/Data/features/Exp_test/",
+        'output_path': "/Data/features/dynamic_features_facial_exp_test.pkl",
+        'path_to_extracted_features': "/Data/features/Exp_test/",
     }
     generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_exp)
 
@@ -181,7 +181,7 @@ def main():
         "dynamic_model_type": "dynamic_v3",
         "embeddings_columns": [f"facial_embedding_{i}" for i in range(256)],
         "normalization": "per-video-minmax",
-        "path_to_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_valence_best.pth",
+        "path_to_weights": "/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_valence_best.pth",
         "input_shape": (30, 256),
         "num_classes": None,
         "num_regression_neurons": 2,
@@ -191,8 +191,8 @@ def main():
         "batch_size": 32,
         "challenge": "VA",
         'video_to_fps': load_fps_file(os.path.join(path_to_project, "src/video/training/dynamic_models/fps.pkl")),
-        'output_path': "/home/ddresvya/Data/features/test_predictions_dynamic/dynamic_features_facial_valence_test_30.pkl",
-        'path_to_extracted_features': "/home/ddresvya/Data/features/VA_test/",
+        'output_path': "/Data/features/test_predictions_dynamic/dynamic_features_facial_valence_test_30.pkl",
+        'path_to_extracted_features': "/Data/features/VA_test/",
     }
     generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_valence_30)
 
@@ -201,7 +201,7 @@ def main():
         "dynamic_model_type": "dynamic_v3",
         "embeddings_columns": [f"facial_embedding_{i}" for i in range(256)],
         "normalization": "per-video-minmax",
-        "path_to_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_arousal_best.pth",
+        "path_to_weights": "/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_arousal_best.pth",
         "input_shape": (30, 256),
         "num_classes": None,
         "num_regression_neurons": 2,
@@ -211,8 +211,8 @@ def main():
         "batch_size": 32,
         "challenge": "VA",
         'video_to_fps': load_fps_file(os.path.join(path_to_project, "src/video/training/dynamic_models/fps.pkl")),
-        'output_path': "/home/ddresvya/Data/features/test_predictions_dynamic/dynamic_features_facial_arousal_test_30.pkl",
-        'path_to_extracted_features': "/home/ddresvya/Data/features/VA_test/",
+        'output_path': "/Data/features/test_predictions_dynamic/dynamic_features_facial_arousal_test_30.pkl",
+        'path_to_extracted_features': "/Data/features/VA_test/",
     }
     generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_arousal_30)
 
@@ -221,7 +221,7 @@ def main():
         "dynamic_model_type": "dynamic_v3",
         "embeddings_columns": [f"facial_embedding_{i}" for i in range(256)],
         "normalization": "per-video-minmax",
-        "path_to_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_best_valence_20.pth",
+        "path_to_weights": "/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_best_valence_20.pth",
         "input_shape": (20, 256),
         "num_classes": None,
         "num_regression_neurons": 2,
@@ -231,8 +231,8 @@ def main():
         "batch_size": 32,
         "challenge": "VA",
         'video_to_fps': load_fps_file(os.path.join(path_to_project, "src/video/training/dynamic_models/fps.pkl")),
-        'output_path': "/home/ddresvya/Data/features/test_predictions_dynamic/dynamic_features_facial_valence_test_20.pkl",
-        'path_to_extracted_features': "/home/ddresvya/Data/features/VA_test/",
+        'output_path': "/Data/features/test_predictions_dynamic/dynamic_features_facial_valence_test_20.pkl",
+        'path_to_extracted_features': "/Data/features/VA_test/",
     }
     generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_valence_20)
 
@@ -241,7 +241,7 @@ def main():
         "dynamic_model_type": "dynamic_v3",
         "embeddings_columns": [f"facial_embedding_{i}" for i in range(256)],
         "normalization": "per-video-minmax",
-        "path_to_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_best_arousal_20.pth",
+        "path_to_weights": "/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_best_arousal_20.pth",
         "input_shape": (20, 256),
         "num_classes": None,
         "num_regression_neurons": 2,
@@ -251,8 +251,8 @@ def main():
         "batch_size": 32,
         "challenge": "VA",
         'video_to_fps': load_fps_file(os.path.join(path_to_project, "src/video/training/dynamic_models/fps.pkl")),
-        'output_path': "/home/ddresvya/Data/features/test_predictions_dynamic/dynamic_features_facial_arousal_test_20.pkl",
-        'path_to_extracted_features': "/home/ddresvya/Data/features/VA_test/",
+        'output_path': "/Data/features/test_predictions_dynamic/dynamic_features_facial_arousal_test_20.pkl",
+        'path_to_extracted_features': "/Data/features/VA_test/",
     }
     generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_arousal_20)"""
 
@@ -263,7 +263,7 @@ def main():
         "dynamic_model_type": "dynamic_v3",
         "embeddings_columns": [f"facial_embedding_{i}" for i in range(256)],
         "normalization": "per-video-minmax",
-        "path_to_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_valence_best.pth",
+        "path_to_weights": "/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_valence_best.pth",
         "input_shape": (30, 256),
         "num_classes": None,
         "num_regression_neurons": 2,
@@ -273,8 +273,8 @@ def main():
         "batch_size": 32,
         "challenge": "VA",
         'video_to_fps': load_fps_file(os.path.join(path_to_project, "src/video/training/dynamic_models/fps.pkl")),
-        'output_path': "/home/ddresvya/Data/features/test_predictions_dynamic/dynamic_features_facial_valence_train_dev_30.pkl",
-        'path_to_extracted_features': "/home/ddresvya/Data/features/VA/",
+        'output_path': "/Data/features/test_predictions_dynamic/dynamic_features_facial_valence_train_dev_30.pkl",
+        'path_to_extracted_features': "/Data/features/VA/",
     }
     generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_valence_30)
 
@@ -283,7 +283,7 @@ def main():
         "dynamic_model_type": "dynamic_v3",
         "embeddings_columns": [f"facial_embedding_{i}" for i in range(256)],
         "normalization": "per-video-minmax",
-        "path_to_weights": "/home/ddresvya/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_arousal_best.pth",
+        "path_to_weights": "/Data/weights_best_models/fine_tuned_dynamic_VA/uni_modal_face_arousal_best.pth",
         "input_shape": (30, 256),
         "num_classes": None,
         "num_regression_neurons": 2,
@@ -293,8 +293,8 @@ def main():
         "batch_size": 32,
         "challenge": "VA",
         'video_to_fps': load_fps_file(os.path.join(path_to_project, "src/video/training/dynamic_models/fps.pkl")),
-        'output_path': "/home/ddresvya/Data/features/test_predictions_dynamic/dynamic_features_facial_arousal_train_dev_30.pkl",
-        'path_to_extracted_features': "/home/ddresvya/Data/features/VA/",
+        'output_path': "/Data/features/test_predictions_dynamic/dynamic_features_facial_arousal_train_dev_30.pkl",
+        'path_to_extracted_features': "/Data/features/VA/",
     }
     generate_test_predictions_all_videos(**config_dynamic_face_uni_modal_arousal_30)
 

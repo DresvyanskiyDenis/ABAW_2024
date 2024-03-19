@@ -99,7 +99,7 @@ def majority_voting(targets: list[np.ndarray], predicts: list[np.ndarray], sampl
 
 
 def round_math(val: float) -> int:
-    """Rounds value. Proposed by Elena Ryumina
+    """Rounds value. Proposed by *** # TODO
 
     Args:
         val (float): Value

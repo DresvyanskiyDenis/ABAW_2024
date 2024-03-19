@@ -1,7 +1,7 @@
 import sys
-sys.path.append("/nfs/home/ddresvya/scripts/datatools/")
-sys.path.append("/nfs/home/ddresvya/scripts/ABAW_2023_SIU/")
-sys.path.append("/nfs/home/ddresvya/scripts/simple-HRNet-master/")
+sys.path.append("/nfs/scripts/datatools/")
+sys.path.append("/nfs/scripts/ABAW_2023_SIU/")
+sys.path.append("/nfs/scripts/simple-HRNet-master/")
 
 import argparse
 from torchinfo import summary

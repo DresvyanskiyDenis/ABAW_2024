@@ -20,11 +20,11 @@ from video.post_processing.embeddings_extraction_dynamic_test import load_fps_fi
 
 def load_video_modality(part:str):
     if part == "dev":
-        path_to_test_predictions_valence = "/home/ddresvya/Data/features/test_predictions_dynamic/VA/dynamic_features_facial_valence_train_dev_30.pkl"
-        path_to_test_predictions_arousal = "/home/ddresvya/Data/features/test_predictions_dynamic/VA/dynamic_features_facial_arousal_train_dev_30.pkl"
+        path_to_test_predictions_valence = "/Data/features/test_predictions_dynamic/VA/dynamic_features_facial_valence_train_dev_30.pkl"
+        path_to_test_predictions_arousal = "/Data/features/test_predictions_dynamic/VA/dynamic_features_facial_arousal_train_dev_30.pkl"
     elif part == "test":
-        path_to_test_predictions_valence = "/home/ddresvya/Data/features/test_predictions_dynamic/VA/dynamic_features_facial_valence_test_30.pkl"
-        path_to_test_predictions_arousal = "/home/ddresvya/Data/features/test_predictions_dynamic/VA/dynamic_features_facial_arousal_test_30.pkl"
+        path_to_test_predictions_valence = "/Data/features/test_predictions_dynamic/VA/dynamic_features_facial_valence_test_30.pkl"
+        path_to_test_predictions_arousal = "/Data/features/test_predictions_dynamic/VA/dynamic_features_facial_arousal_test_30.pkl"
 
 
     # load pickle files
@@ -48,19 +48,19 @@ def load_video_modality(part:str):
 
 def load_audio_modality(part, video_to_fps):
     if part == "dev":
-        path = "/home/ddresvya/Data/features/test_predictions_dynamic/VA/va_devel.pickle"
+        path = "/Data/features/test_predictions_dynamic/VA/va_devel.pickle"
     elif part == "test":
-        path = "/home/ddresvya/Data/features/test_predictions_dynamic/VA/va_test.pickle"
+        path = "/Data/features/test_predictions_dynamic/VA/va_test.pickle"
     with open(path, 'rb') as f:
         audio_predictions = pickle.load(f)
         audio_predictions = {str(key): audio_predictions[key] for key in audio_predictions.keys()}
         audio_predictions = {key.split(".")[0]: audio_predictions[key] for key in audio_predictions.keys()}
     if part == "dev":
         labels = load_labels(
-            path_to_labels="/home/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
+            path_to_labels="/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
             challenge="VA", video_to_fps=video_to_fps)
     elif part == "test":
-        labels = load_test_sample_file_and_preprocess(path_to_sample_file="/home/ddresvya/Data/test_set/prediction_files_format/CVPR_6th_ABAW_VA_test_set_sample.txt"
+        labels = load_test_sample_file_and_preprocess(path_to_sample_file="/Data/test_set/prediction_files_format/CVPR_6th_ABAW_VA_test_set_sample.txt"
                                                        , video_to_fps=video_to_fps)
     audio_predictions = process_dict(audio_predictions, labels)
     return audio_predictions
@@ -68,19 +68,19 @@ def load_audio_modality(part, video_to_fps):
 
 def load_statistical_features(part, video_to_fps):
     if part == "dev":
-        path = "/home/ddresvya/Data/features/test_predictions_dynamic/VA/VA_dev_efficientB1_mean_max_min_wo_scale_both.pkl"
+        path = "/Data/features/test_predictions_dynamic/VA/VA_dev_efficientB1_mean_max_min_wo_scale_both.pkl"
     elif part == "test":
-        path = "/home/ddresvya/Data/features/test_predictions_dynamic/VA/VA_test_efficientB1_mean_max_min_wo_scale_both.pkl"
+        path = "/Data/features/test_predictions_dynamic/VA/VA_test_efficientB1_mean_max_min_wo_scale_both.pkl"
     with open(path, 'rb') as f:
         predictions = pickle.load(f)
         predictions = {str(key): predictions[key] for key in predictions.keys()}
         predictions = {key.split(".")[0]: predictions[key] for key in predictions.keys()}
     if part == "dev":
         labels = load_labels(
-            path_to_labels="/home/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
+            path_to_labels="/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
             challenge="VA", video_to_fps=video_to_fps)
     elif part == "test":
-        labels = load_test_sample_file_and_preprocess(path_to_sample_file="/home/ddresvya/Data/test_set/prediction_files_format/CVPR_6th_ABAW_VA_test_set_sample.txt"
+        labels = load_test_sample_file_and_preprocess(path_to_sample_file="/Data/test_set/prediction_files_format/CVPR_6th_ABAW_VA_test_set_sample.txt"
                                                        , video_to_fps=video_to_fps)
     predictions = process_dict(predictions, labels)
     return predictions
@@ -236,7 +236,7 @@ def main():
     statistical_test = load_statistical_features("test", video_to_fps)
     # load labels
     labels = load_labels(
-        path_to_labels="/home/ddresvya/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
+        path_to_labels="/Data/6th ABAW Annotations/VA_Estimation_Challenge/Validation_Set/",
         challenge="VA", video_to_fps=video_to_fps)
     # get keys in video that are only in statistical
     dev_keys = list(statistical_dev.keys())
@@ -285,10 +285,10 @@ def main():
     print(f"Best CCC arousal: {best_CCC_arousal}")
     # generate predictions
     generate_test_predictions(audio_test, video_test, statistical_test, best_weights,
-                              "/home/ddresvya/Data/test_set/prediction_files_format/CVPR_6th_ABAW_VA_test_set_sample.txt",
-                              "/home/ddresvya/Data/test_set/VA/submission_3/submission_3.csv")
+                              "/Data/test_set/prediction_files_format/CVPR_6th_ABAW_VA_test_set_sample.txt",
+                              "/Data/test_set/VA/submission_3/submission_3.csv")
     # save best weights
-    with open("/home/ddresvya/Data/test_set/VA/submission_3/best_weights.pkl", 'wb') as f:
+    with open("/Data/test_set/VA/submission_3/best_weights.pkl", 'wb') as f:
         pickle.dump(best_weights, f)
 
 

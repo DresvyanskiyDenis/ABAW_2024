@@ -179,7 +179,7 @@ def extract_predicts(model_params: dict, config: dict, problem_type: ProblemType
 
 if __name__ == '__main__':
     model_parameters = [
-        {'model_name': 'Facial-TestModelSTP-2024.03.18-00.34.26', 'model_cls': TestModelSTP, 'epoch': 3, 'root_path': '/media/maxim/WesternDigitalNew/AbawLogs/FUSION_VA'},
+        {'model_name': 'Facial-TestModelSTP-2024.03.18-00.34.26', 'model_cls': TestModelSTP, 'epoch': 3, 'root_path': '/Logs/FUSION_VA'},  # TODO
     ]
 
     # EXPR
