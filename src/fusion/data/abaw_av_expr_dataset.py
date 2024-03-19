@@ -207,6 +207,7 @@ class AbawMultimodalExprWithNormDataset(Dataset):
                  min_w_len: int = 2, 
                  max_w_len: int = 4, 
                  normalizer: list[MinMaxScaler] = [None, None],
+                 num_frames_dict: dict = None,
                  transform: list[torchvision.transforms.transforms.Compose] = [None, None, None]) -> None:
         self.audio_features_path = audio_features_path
         self.video_features_path = video_features_path
@@ -218,6 +219,7 @@ class AbawMultimodalExprWithNormDataset(Dataset):
         self.dataset = dataset
 
         self.audio_train_features_path = audio_train_features_path
+        self.num_frames_dict = num_frames_dict
         
         self.sr = sr
         self.shift = shift
@@ -365,6 +367,7 @@ class AbawMultimodalExprWithNormDataset(Dataset):
         sample_info['path_to_labels'] = self.labels_root
         sample_info['video_name'] = a_meta['filename']
         sample_info['fps'] = self.audio_data[a_meta['filename']]['fps'][a_meta['idx']]
+        sample_info['total_num_frames'] = self.num_frames_dict[a_meta['filename']] if self.num_frames_dict else -1
         sample_info['mouth_open'] = self.audio_data[a_meta['filename']]['mouth_open'][a_meta['idx']]
 
         y = self.video_data[v_meta['filename']]['targets'][v_meta['idx']][:20] #TODO

@@ -125,7 +125,7 @@ class NetTrainer:
             log_epochs: list[int] = [], 
             fold_num: int = None, 
             mixup_alpha: float = None, 
-            verbose: bool = True) -> None:
+            verbose: bool = True) -> [torch.nn.Module, dict[float]]:
         """Iterates over epochs including the following steps:
         - Iterates over phases (train/devel/test phase):
             - Calls `iterate_model` function (as main loop for training/validation/testing)
@@ -323,7 +323,7 @@ class NetTrainer:
             if self.problem_type == ProblemType.CLASSIFICATION:
                 labels_mask = (labs != -1)
             else:
-                labels_mask = True # TODO
+                labels_mask = (labs[:, :, 0] != -5) & (labs[:, :, 1] != -5)
                         
             self.optimizer.zero_grad()
 
@@ -335,12 +335,14 @@ class NetTrainer:
                     if self.problem_type == ProblemType.CLASSIFICATION:
                         loss_value = self.loss(preds[labels_mask, :].reshape(-1, len(self.c_names)), labs[labels_mask].flatten())
                     else:
-                        loss_value = self.loss(preds.reshape(-1, 2), labs.reshape(-1, 2))  # TODO
+                        loss_value = self.loss(preds[labels_mask].reshape(-1, 2), labs[labels_mask].reshape(-1, 2))  # TODO
 
                 # backward + optimize only if in training phase
                 if ('train' in phase) and self.loss and len(labs[labels_mask]) > 0:
                     # multiply loss by 100
-                    loss_value = loss_value * 100
+                    if self.problem_type == ProblemType.CLASSIFICATION:
+                        loss_value = loss_value * 100
+                    
                     loss_value.backward()
                     # gradient clipping
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0, norm_type=2)
@@ -382,6 +384,64 @@ class NetTrainer:
                                                                     sample_info=new_sample_info)
        
         return targets, predicts, sample_info, epoch_loss
+
+    def test_model(self, 
+                   phase: str, 
+                   dataloader: torch.utils.data.dataloader.DataLoader, 
+                   verbose: bool = True) -> tuple[list[np.ndarray], list[np.ndarray], list[dict], float]:
+        targets = []
+        predicts = []
+        sample_info = []
+        
+        self.model.eval()
+
+        # Iterate over data.
+        for idx, data in enumerate(tqdm(dataloader, disable=not verbose)):
+            inps, labs, s_info = data
+            if isinstance(inps, list):
+                inps = [d.to(self.device) for d in inps]
+            else:
+                inps = inps.to(self.device)
+
+            if isinstance(labs, list):
+                labs = [d.to(self.device) for d in labs]
+            else:
+                labs = labs.to(self.device)
+
+            # forward and backward
+            preds = None
+            with torch.set_grad_enabled('train' in phase):
+                preds = self.model(inps)
+
+            if isinstance(labs, list):
+                labs = [d.cpu().numpy() for d in labs]
+            else:
+                labs = labs.cpu().numpy()
+                
+            targets.extend(labs)
+
+            if self.problem_type == ProblemType.CLASSIFICATION:
+                preds = F.softmax(preds, dim=-1)
+                
+            if isinstance(preds, list):
+                preds = [d.cpu().detach().numpy() for d in preds]
+            else:
+                preds = preds.cpu().detach().numpy()
+
+            predicts.extend(preds)
+            sample_info.extend(s_info)
+
+        if self.group_predicts_fn:
+            new_sample_info = []
+            for si in sample_info:
+                for i in range(0, len(si['frame_start'])):
+                    new_sample_info.append({k:si[k][i] if isinstance(si[k][i], str) else si[k][i].numpy() for k in si})
+
+            targets, predicts, sample_info = self.group_predicts_fn(targets=np.asarray(targets), 
+                                                                    predicts=np.asarray(predicts),
+                                                                    sample_info=new_sample_info)
+       
+        return targets, predicts, sample_info
     
     def extract_features(self, 
                          phase: str, 
